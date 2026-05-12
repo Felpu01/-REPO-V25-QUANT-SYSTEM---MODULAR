@@ -1,26 +1,27 @@
-# execution.py
-
 import random
 
+def execute_trade(signal, price, balance):
 
-def execute_trade(signal):
+    risk_per_trade = 0.01
+    risk_amount = balance * risk_per_trade
+
+    rr = random.uniform(1.0, 3.0)
 
     if signal == "BUY":
-
-        result = random.choice([
-            random.uniform(5, 15),
-            random.uniform(-10, -3)
-        ])
-
-        return round(result, 2)
+        result = random.choice(["WIN", "LOSS"])
 
     elif signal == "SELL":
+        result = random.choice(["WIN", "LOSS"])
 
-        result = random.choice([
-            random.uniform(5, 15),
-            random.uniform(-10, -3)
-        ])
+    else:
+        return balance, 0, None
 
-        return round(result, 2)
+    if result == "WIN":
+        pnl = risk_amount * rr
+        balance += pnl
 
-    return 0
+    else:
+        pnl = -risk_amount
+        balance += pnl
+
+    return round(balance, 2), round(pnl, 2), result
