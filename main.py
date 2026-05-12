@@ -70,7 +70,7 @@ while True:
 
     if signal != "WAIT":
 
-        pnl = execute_trade(signal, price, balance)
+        pnl = execute_trade(signal, price, balance)[0]
 
         balance += pnl
 
