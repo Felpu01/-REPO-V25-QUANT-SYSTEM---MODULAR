@@ -5,7 +5,7 @@ from config import BALANCE_START
 
 from engine import market_engine
 
-from strategy import score_engine
+from strategy import institutional_score
 from strategy import regime_logic
 
 from risk import RiskManager
@@ -44,7 +44,7 @@ while True:
         prev_price
     )
 
-    score = score_engine(
+    score = institutional_score(
         trend,
         sweep,
         volatility
