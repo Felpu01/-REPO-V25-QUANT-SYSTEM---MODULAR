@@ -1,69 +1,52 @@
-from engine import detect_trend, detect_volatility, detect_liquidity_sweep
-from structure import detect_bos, detect_choch
-from strategy import regime_logic, institutional_score
-from execution import execute_trade
+from data.market_data import get_market_data
 
-import random
+from core.engine import trend, volatility
+from core.structure import bos, choch
+from core.strategy import score
 
-print("🚀 V24.4 INSTITUTIONAL REAL ENGINE STARTED")
+from execution.execution import execute
+from risk.risk import risk_control
 
+import config
 
-def generate_prices():
-    prices = []
-    price = 10000
+print("🚀 V25 QUANT SYSTEM STARTED")
 
-    for _ in range(300):
-        price += random.uniform(-20, 20)
-        prices.append(price)
+data = get_market_data()
 
-    return prices
+prices = [x["price"] for x in data]
 
-
-prices = generate_prices()
-
-balance = 10000
-win = 0
-loss = 0
+balance = config.BALANCE_START
 peak = balance
 
-
-for i in range(10, len(prices)):
+for i in range(10, len(data)):
 
     price = prices[i]
+
+    tr = trend(prices, i)
+    vol = volatility(prices, i)
+
     prev_high = max(prices[i-10:i])
     prev_low = min(prices[i-10:i])
 
-    trend = detect_trend(prices, i)
-    vol = detect_volatility(prices, i)
-    sweep = detect_liquidity_sweep(price, prev_high, prev_low)
+    bos_up, bos_down = bos(price, prev_high, prev_low)
+    choch_up, choch_down = choch(tr, bos_up, bos_down)
 
-    bos_up, bos_down = detect_bos(price, prev_high, prev_low)
-    choch_up, choch_down = detect_choch(trend, bos_up, bos_down)
+    sc = score(tr, vol, bos_up, bos_down)
 
-    regime = regime_logic(trend, sweep, vol)
-    score = institutional_score(trend, vol, sweep, regime)
+    signal = "BUY" if sc >= config.SCORE_THRESHOLD else "WAIT"
 
-    signal = "WAIT"
-
-    if score >= 0.85 and (bos_up or choch_up or sweep) and trend == "UP":
-        signal = "BUY"
-
-    elif score >= 0.85 and (bos_down or choch_down or sweep) and trend == "DOWN":
-        signal = "SELL"
-
-    pnl = execute_trade(signal, price, balance * 0.01)
+    pnl = execute(signal, price, balance * config.RISK_PER_TRADE)
 
     balance += pnl
-
-    if pnl > 0:
-        win += 1
-    elif pnl < 0:
-        loss += 1
 
     if balance > peak:
         peak = balance
 
-    dd = (peak - balance) / peak * 100
+    drawdown = (peak - balance) / peak if peak > 0 else 0
+
+    if not risk_control(drawdown, config.MAX_DRAWDOWN):
+        print("🛑 MAX DRAWDOWN HIT - STOP")
+        break
 
     if i % 20 == 0:
-        print(f"PRICE:{price:.2f} SIGNAL:{signal} SCORE:{score} BAL:{balance:.2f} DD:{dd:.2f}")
+        print(f"PRICE:{price:.2f} SCORE:{sc} BAL:{balance:.2f} DD:{drawdown:.2f}")
