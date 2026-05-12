@@ -1,4 +1,4 @@
-import random
+random
 
 def execute_trade(signal, price, risk_amount):
     if signal == "WAIT":
@@ -15,4 +15,4 @@ def execute_trade(signal, price, risk_amount):
     if pnl != pnl:  # check NaN
         pnl = 0.0
 
-    return pnl
+    return pnlh
