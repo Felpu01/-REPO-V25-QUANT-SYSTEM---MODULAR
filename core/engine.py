@@ -1,23 +1,27 @@
 def trend(prices, i):
 
     if i < 5:
-        return "NEUTRAL"
+        return "neutral"
 
-    return "UP" if prices[i] > prices[i-5] else "DOWN"
+    if prices[i] > prices[i - 5]:
+        return "bullish"
+    else:
+        return "bearish"
 
 
 def volatility(prices, i):
 
-    window = prices[max(0, i-10):i]
+    window = prices[max(0, i - 10):i]
 
     if len(window) < 2:
-        return "LOW"
+        return 0.0  # baja volatilidad numérica
 
     amp = max(window) - min(window)
 
+    # normalización simple (para score)
     if amp > 60:
-        return "HIGH"
+        return 0.9
     elif amp > 25:
-        return "MEDIUM"
+        return 0.5
 
-    return "LOW"
+    return 0.2
