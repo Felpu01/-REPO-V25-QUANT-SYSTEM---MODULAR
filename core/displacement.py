@@ -22,6 +22,6 @@ def displacement(prices, i):
     if avg_move > 0:
         displacement_strength = move / avg_move
 
-    displacement_valid = displacement_strength > 1.8
+    displacement_valid = displacement_strength > 1.5
 
     return displacement_valid, displacement_strength
