@@ -15,7 +15,7 @@ def entry_confirmation(
     # =========================
     # MOMENTUM CONFIRMATION
     # =========================
-    momentum_ok = volatility > 0.60
+    momentum_ok = volatility > 0.50
 
     # =========================
     # BUY CONFIRMATION
@@ -24,7 +24,7 @@ def entry_confirmation(
 
         regime in ["TREND", "EXPANSION"]
 
-        and score >= 0.90
+        and score >= 0.82
 
         and bias == "BULLISH"
 
