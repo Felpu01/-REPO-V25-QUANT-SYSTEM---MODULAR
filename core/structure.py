@@ -1,7 +1,6 @@
 def get_swings(prices, lookback=5):
     """
     Detecta swings highs y lows simples.
-    Devuelve listas de índices importantes.
     """
 
     swing_highs = []
@@ -27,7 +26,7 @@ def get_swings(prices, lookback=5):
 
 def bos(price, prev_high, prev_low):
     """
-    Break of Structure REAL simplificado.
+    Break of Structure (BOS)
     """
 
     bos_up = price > prev_high
@@ -38,7 +37,7 @@ def bos(price, prev_high, prev_low):
 
 def choch(trend, bos_up, bos_down):
     """
-    CHOCH real básico: cambio de intención estructural.
+    Change of Character (CHOCH)
     """
 
     choch_up = False
@@ -51,3 +50,37 @@ def choch(trend, bos_up, bos_down):
         choch_down = True
 
     return choch_up, choch_down
+
+
+# =========================
+# 🔥 LIQUIDITY ENGINE (NUEVO)
+# =========================
+
+def liquidity_sweep(prices, i, lookback=10):
+    """
+    Detecta sweep de liquidez:
+    - rompe high/low previo
+    - típico stop hunt institucional
+    """
+
+    if i < lookback:
+        return False, False
+
+    window = prices[i - lookback:i]
+    current = prices[i]
+
+    prev_high = max(window)
+    prev_low = min(window)
+
+    sweep_up = False
+    sweep_down = False
+
+    # 🔺 Sweep arriba (toma liquidez y rechaza)
+    if current > prev_high:
+        sweep_up = True
+
+    # 🔻 Sweep abajo (toma liquidez y rechaza)
+    if current < prev_low:
+        sweep_down = True
+
+    return sweep_up, sweep_down
