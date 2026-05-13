@@ -83,12 +83,12 @@ for i in range(20, len(prices)):
     if displacement_valid:
         structure_score += 1.0
 
-    structure_event = structure_score >= 1.2
+    structure_event = structure_score >= 1.0
 
     # =========================
     # BIAS MEMORY ENGINE
     # =========================
-    bias_memory *= 0.88
+    bias_memory *= 0.94
 
     # Bullish pressure
     if bos_up:
