@@ -1,10 +1,84 @@
-import random
+from execution.position_manager import PositionManager
 
-def execute(signal, price, risk):
+pm = PositionManager()
 
-    if signal == "WAIT":
-        return 0
 
-    move = random.uniform(-1, 1)
+# =========================
+# EXECUTION ENGINE
+# =========================
+def execute(
+    signal,
+    price,
+    atr,
+    score,
+    balance
+):
 
-    return risk * move
+    # =====================
+    # NO POSITION
+    # =====================
+    if signal not in ["BUY", "SELL"]:
+        return None
+
+    if pm.has_position():
+        return None
+
+    # =====================
+    # RISK MODEL
+    # =====================
+    risk_percent = 0.01
+
+    risk_amount = balance * risk_percent
+
+    # =====================
+    # ATR SL/TP
+    # =====================
+    sl_distance = atr * 1.5
+
+    tp_distance = atr * 3.0
+
+    # =====================
+    # BUY
+    # =====================
+    if signal == "BUY":
+
+        sl = price - sl_distance
+
+        tp = price + tp_distance
+
+    # =====================
+    # SELL
+    # =====================
+    else:
+
+        sl = price + sl_distance
+
+        tp = price - tp_distance
+
+    # =====================
+    # OPEN POSITION
+    # =====================
+    pm.open_position(
+        signal=signal,
+        entry=price,
+        sl=sl,
+        tp=tp,
+        risk=risk_amount,
+        score=score
+    )
+
+    return {
+        "signal": signal,
+        "entry": price,
+        "sl": sl,
+        "tp": tp,
+        "risk": risk_amount
+    }
+
+
+# =========================
+# UPDATE OPEN POSITION
+# =========================
+def update_positions(price):
+
+    return pm.update_position(price)
