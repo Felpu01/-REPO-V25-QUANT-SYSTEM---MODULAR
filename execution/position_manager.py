@@ -1,399 +1,166 @@
-from persistence import save_state
-from persistence import load_state
+import json
+import os
+from datetime import datetime
+
+# =========================
+# POSITION STATES
+# =========================
+IDLE = "IDLE"
+OPEN = "OPEN"
+BREAK_EVEN = "BREAK_EVEN"
+PARTIAL_TP = "PARTIAL_TP"
+TRAILING = "TRAILING"
+CLOSED = "CLOSED"
 
 
 class PositionManager:
-
-    def __init__(self):
-
-        self.position = None
-
-        self.just_opened = False
-
-        # =====================
-        # LOAD RUNTIME POSITION
-        # =====================
-        runtime = load_state()
-
-        if runtime:
-
-            saved_position = runtime.get(
-                "position"
-            )
-
-            if saved_position:
-
-                self.position = saved_position
-
-                print("♻️ POSITION RECOVERED")
-
-    # =========================
-    # SAVE POSITION STATE
-    # =========================
-    def persist_position(self):
-
-        runtime = load_state()
-
-        if runtime is None:
-
-            runtime = {}
-
-        runtime["position"] = self.position
-
-        save_state(runtime)
-
-    # =========================
-    # CLEAR POSITION
-    # =========================
-    def clear_position(self):
-
-        runtime = load_state()
-
-        if runtime is None:
-
-            runtime = {}
-
-        runtime["position"] = None
-
-        save_state(runtime)
+    def __init__(self, persistence_file="position_state.json"):
+        self.persistence_file = persistence_file
 
         self.position = None
+        self.lock = False
+
+        self.load_state()
 
     # =========================
-    # OPEN POSITION
+    # LOAD / SAVE PERSISTENCE
     # =========================
-    def open_position(
-        self,
-        signal,
-        entry,
-        sl,
-        tp,
-        risk,
-        score
-    ):
+    def save_state(self):
+        if self.position:
+            data = {
+                "position": self.position,
+                "lock": self.lock,
+                "timestamp": str(datetime.utcnow())
+            }
+            with open(self.persistence_file, "w") as f:
+                json.dump(data, f, indent=4)
 
-        # =====================
-        # HARD LOCK
-        # =====================
-        if self.position is not None:
-
-            print("⛔ POSITION ALREADY OPEN")
-
-            return False
-
-        self.position = {
-
-            "side": signal,
-
-            "entry": entry,
-
-            "sl": sl,
-
-            "tp": tp,
-
-            "risk": risk,
-
-            "score": score,
-
-            "status": "OPEN",
-
-            "break_even": False,
-
-            "trailing_active": False,
-
-            "highest_price": entry,
-
-            "lowest_price": entry,
-
-            # =====================
-            # NEW INSTITUTIONAL DATA
-            # =====================
-            "partial_taken": False,
-
-            "trailing_sl": sl,
-
-            "max_profit": 0.0,
-        }
-
-        self.just_opened = True
-
-        self.persist_position()
-
-        print(f"🚀 OPEN {signal}")
-        print(f"ENTRY:{entry}")
-        print(f"SL:{sl}")
-        print(f"TP:{tp}")
-
-        return True
+    def load_state(self):
+        if os.path.exists(self.persistence_file):
+            try:
+                with open(self.persistence_file, "r") as f:
+                    data = json.load(f)
+                    self.position = data.get("position")
+                    self.lock = data.get("lock", False)
+            except:
+                self.position = None
+                self.lock = False
 
     # =========================
-    # UPDATE POSITION
-    # =========================
-    def update_position(self, price):
-
-        # =====================
-        # NO POSITION
-        # =====================
-        if self.position is None:
-
-            return None
-
-        # =====================
-        # SKIP SAME CANDLE
-        # =====================
-        if self.just_opened:
-
-            self.just_opened = False
-
-            return None
-
-        pos = self.position
-
-        # =====================
-        # TRACKING
-        # =====================
-        pos["highest_price"] = max(
-            pos["highest_price"],
-            price
-        )
-
-        pos["lowest_price"] = min(
-            pos["lowest_price"],
-            price
-        )
-
-        # =====================
-        # BUY MANAGEMENT
-        # =====================
-        if pos["side"] == "BUY":
-
-            profit = (
-                price
-                - pos["entry"]
-            )
-
-            tp_distance = (
-                pos["tp"]
-                - pos["entry"]
-            )
-
-            pos["max_profit"] = max(
-                pos["max_profit"],
-                profit
-            )
-
-            # =================
-            # BREAK EVEN
-            # =================
-            if (
-                profit >= tp_distance * 0.40
-                and not pos["break_even"]
-            ):
-
-                pos["sl"] = (
-                    pos["entry"]
-                    + tp_distance * 0.05
-                )
-
-                pos["break_even"] = True
-
-                self.persist_position()
-
-                print("🟢 BREAK EVEN ACTIVATED")
-
-            # =================
-            # TRAILING
-            # =================
-            if pos["break_even"]:
-
-                dynamic_trailing = max(
-                    tp_distance * 0.20,
-                    pos["max_profit"] * 0.35
-                )
-
-                new_sl = (
-                    price
-                    - dynamic_trailing
-                )
-
-                if new_sl > pos["sl"]:
-
-                    pos["sl"] = new_sl
-
-                    self.persist_position()
-
-            # =================
-            # TAKE PROFIT
-            # =================
-            if price >= pos["tp"]:
-
-                print("✅ TAKE PROFIT")
-
-                result = {
-                    "result": "WIN",
-                    "pnl": pos["risk"] * 2
-                }
-
-                self.clear_position()
-
-                return result
-
-            # =================
-            # STOP LOSS
-            # =================
-            if price <= pos["sl"]:
-
-                if pos["break_even"]:
-
-                    print("⚪ TRAILING EXIT")
-
-                    pnl = pos["risk"] * 0.35
-
-                    result_type = "WIN"
-
-                else:
-
-                    print("❌ STOP LOSS")
-
-                    pnl = -pos["risk"]
-
-                    result_type = "LOSS"
-
-                result = {
-                    "result": result_type,
-                    "pnl": pnl
-                }
-
-                self.clear_position()
-
-                return result
-
-        # =====================
-        # SELL MANAGEMENT
-        # =====================
-        elif pos["side"] == "SELL":
-
-            profit = (
-                pos["entry"]
-                - price
-            )
-
-            tp_distance = (
-                pos["entry"]
-                - pos["tp"]
-            )
-
-            pos["max_profit"] = max(
-                pos["max_profit"],
-                profit
-            )
-
-            # =================
-            # BREAK EVEN
-            # =================
-            if (
-                profit >= tp_distance * 0.40
-                and not pos["break_even"]
-            ):
-
-                pos["sl"] = (
-                    pos["entry"]
-                    - tp_distance * 0.05
-                )
-
-                pos["break_even"] = True
-
-                self.persist_position()
-
-                print("🟢 BREAK EVEN ACTIVATED")
-
-            # =================
-            # TRAILING
-            # =================
-            if pos["break_even"]:
-
-                dynamic_trailing = max(
-                    tp_distance * 0.20,
-                    pos["max_profit"] * 0.35
-                )
-
-                new_sl = (
-                    price
-                    + dynamic_trailing
-                )
-
-                if new_sl < pos["sl"]:
-
-                    pos["sl"] = new_sl
-
-                    self.persist_position()
-
-            # =================
-            # TAKE PROFIT
-            # =================
-            if price <= pos["tp"]:
-
-                print("✅ TAKE PROFIT")
-
-                result = {
-                    "result": "WIN",
-                    "pnl": pos["risk"] * 2
-                }
-
-                self.clear_position()
-
-                return result
-
-            # =================
-            # STOP LOSS
-            # =================
-            if price >= pos["sl"]:
-
-                if pos["break_even"]:
-
-                    print("⚪ TRAILING EXIT")
-
-                    pnl = pos["risk"] * 0.35
-
-                    result_type = "WIN"
-
-                else:
-
-                    print("❌ STOP LOSS")
-
-                    pnl = -pos["risk"]
-
-                    result_type = "LOSS"
-
-                result = {
-                    "result": result_type,
-                    "pnl": pnl
-                }
-
-                self.clear_position()
-
-                return result
-
-        # =====================
-        # SAVE ACTIVE STATE
-        # =====================
-        self.persist_position()
-
-        return None
-
-    # =========================
-    # POSITION STATUS
+    # STATE CHECKS
     # =========================
     def has_position(self):
+        return self.position is not None and self.position.get("state") != CLOSED
 
-        return (
-            self.position is not None
-            and self.position["status"] == "OPEN"
-        )
+    def is_idle(self):
+        return not self.has_position()
 
     # =========================
-    # GET POSITION
+    # ENTRY CONTROL
     # =========================
-    def get_position(self):
+    def can_enter(self):
+        return not self.lock and self.is_idle()
+
+    def open_position(self, side, entry, sl, tp, score):
+        if not self.can_enter():
+            return None
+
+        self.position = {
+            "side": side,
+            "entry": entry,
+            "sl": sl,
+            "tp": tp,
+            "state": OPEN,
+            "score": score,
+            "created_at": str(datetime.utcnow()),
+
+            # management fields
+            "break_even": False,
+            "trailing": False,
+            "partial_taken": False
+        }
+
+        self.lock = True
+        self.save_state()
 
         return self.position
+
+    # =========================
+    # UPDATE PRICE ACTION
+    # =========================
+    def update(self, price):
+        if not self.position:
+            return None
+
+        side = self.position["side"]
+        sl = self.position["sl"]
+        tp = self.position["tp"]
+        entry = self.position["entry"]
+
+        # =========================
+        # STOP LOSS
+        # =========================
+        if side == "BUY" and price <= sl:
+            return self.close("SL")
+
+        if side == "SELL" and price >= sl:
+            return self.close("SL")
+
+        # =========================
+        # TAKE PROFIT
+        # =========================
+        if side == "BUY" and price >= tp:
+            return self.close("TP")
+
+        if side == "SELL" and price <= tp:
+            return self.close("TP")
+
+        # =========================
+        # BREAK EVEN LOGIC
+        # =========================
+        if not self.position["break_even"]:
+            if side == "BUY" and price >= entry + abs(entry - sl):
+                self.position["sl"] = entry
+                self.position["state"] = BREAK_EVEN
+                self.position["break_even"] = True
+
+            if side == "SELL" and price <= entry - abs(entry - sl):
+                self.position["sl"] = entry
+                self.position["state"] = BREAK_EVEN
+                self.position["break_even"] = True
+
+        # =========================
+        # TRAILING LOGIC (simple institutional)
+        # =========================
+        if self.position["break_even"]:
+            if side == "BUY":
+                new_sl = price - abs(entry - sl)
+                if new_sl > self.position["sl"]:
+                    self.position["sl"] = new_sl
+                    self.position["state"] = TRAILING
+
+            if side == "SELL":
+                new_sl = price + abs(entry - sl)
+                if new_sl < self.position["sl"]:
+                    self.position["sl"] = new_sl
+                    self.position["state"] = TRAILING
+
+        self.save_state()
+        return self.position
+
+    # =========================
+    # CLOSE POSITION
+    # =========================
+    def close(self, reason):
+        closed_position = self.position
+
+        closed_position["state"] = CLOSED
+        closed_position["close_reason"] = reason
+        closed_position["closed_at"] = str(datetime.utcnow())
+
+        self.position = None
+        self.lock = False
+
+        self.save_state()
+
+        return closed_position
