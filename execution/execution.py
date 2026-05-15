@@ -115,7 +115,6 @@ def execute(signal, price, atr, score, balance):
         price,
         sl,
         tp,
-        risk,
         score
     )
 
