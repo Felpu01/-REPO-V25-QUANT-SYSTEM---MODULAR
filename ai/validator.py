@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import aiohttp
 
-from quant.score import QuantResult
+from core.score import QuantResult
 from config import ANTHROPIC_API_KEY
 
 logger = logging.getLogger("AIValidator")
