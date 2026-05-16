@@ -7,7 +7,7 @@ Combina SMC + momentum + volatilidad + sesión + confluencias.
 import logging
 import numpy as np
 from dataclasses import dataclass, field
-from data.market_data import MultiTF, ema, atr, rsi
+from data.market_data import MultiTimeframeData, ema, atr, rsi
 from smc.structure import MultiTFSMC, SMCAnalysis
 from config import TF_WEIGHTS, SCORE_THRESHOLD, TRADE_SESSIONS
 
