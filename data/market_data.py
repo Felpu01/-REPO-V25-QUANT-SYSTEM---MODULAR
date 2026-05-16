@@ -326,4 +326,4 @@ class MarketDataEngine:
                 time=chunk[0].time,
                 open=chunk[0].open,
                 high=max(b.high for b in chunk),
-                low=min(b.low 
+                low=min(b.low)
