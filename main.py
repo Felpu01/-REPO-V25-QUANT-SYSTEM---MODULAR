@@ -1,355 +1,187 @@
-from data.market_data import get_market_data
+"""
+SMC QUANT BOT — MAIN ORCHESTRATOR
+GitHub → Railway → MetaAPI → MT5 Exness
+Autor: Matías Gonzalez | 2026
+"""
 
-from core.engine import trend, volatility
-from core.structure import bos, choch, liquidity_sweep
-from core.score import calculate_score
-from core.displacement import displacement
+import asyncio
+import logging
+import os
+import sys
+from datetime import datetime, timezone
 
-from core.signal_engine import generate_signal
-
-from execution.execution import execute, update_positions
-
-from risk.risk import risk_control
-from risk.cooldown import CooldownManager
-
-from persistence import save_state, load_state
-
-from core.entry_quality import entry_quality
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("bot.log", encoding="utf-8"),
+    ]
+)
+logger = logging.getLogger("MAIN")
 
 import config
+config.META_API_TOKEN    = os.getenv("META_API_TOKEN",    config.META_API_TOKEN)
+config.MT5_ACCOUNT_ID   = os.getenv("MT5_ACCOUNT_ID",    config.MT5_ACCOUNT_ID)
+config.ANTHROPIC_API_KEY= os.getenv("ANTHROPIC_API_KEY", config.ANTHROPIC_API_KEY)
+
+from config import SYMBOLS, LOOP_INTERVAL, DATA_REFRESH, SCORE_THRESHOLD, AI_MIN_SCORE
+from data.market_data   import MarketDataEngine
+from quant.score        import QuantScoringEngine
+from ai.validator       import AdaptiveAIEngine
+from execution.executor import MT5Executor
 
 
-print("🚀 V40.3 QUANT SYSTEM STARTED (CLEAN STABLE CORE)")
+class SMCQuantBot:
+    def __init__(self):
+        self.market   = MarketDataEngine()
+        self.quant    = QuantScoringEngine()
+        self.ai       = AdaptiveAIEngine()
+        self.executor = MT5Executor()
+        self._running = False
+        self._cycle   = 0
+        self._stats   = {"cycles":0,"signals":0,"trades":0,"wins":0,"losses":0}
 
+    async def start(self):
+        logger.info("=" * 60)
+        logger.info("  SMC QUANT BOT V2 — INICIANDO")
+        logger.info(f"  Activos: {', '.join(SYMBOLS)}")
+        logger.info(f"  Score threshold: {SCORE_THRESHOLD*100:.0f}%")
+        logger.info(f"  AI min score: {AI_MIN_SCORE}")
+        logger.info("=" * 60)
 
-# =========================
-# SAFE LOAD STATE
-# =========================
-runtime = None
-try:
-    runtime = load_state()
-except Exception:
-    runtime = None
-
-
-if runtime:
-    print("♻️ RESTORING RUNTIME STATE")
-
-    balance = runtime.get("balance", config.BALANCE_START)
-    peak = runtime.get("peak", balance)
-    wins = runtime.get("wins", 0)
-    losses = runtime.get("losses", 0)
-    breakevens = runtime.get("breakevens", 0)
-    total_trades = runtime.get("total_trades", 0)
-    bias_memory = runtime.get("bias_memory", 0.0)
-    saved_cooldown = runtime.get("cooldown", 0)
-
-    bias_memory *= 0.80
-
-else:
-    print("🆕 NEW RUNTIME SESSION")
-
-    balance = config.BALANCE_START
-    peak = balance
-    wins = 0
-    losses = 0
-    breakevens = 0
-    total_trades = 0
-    bias_memory = 0.0
-    saved_cooldown = 0
-
-
-# =========================
-# COOLDOWN SAFE INIT
-# =========================
-cooldown_manager = CooldownManager()
-cooldown_manager.cooldown = saved_cooldown
-
-
-# =========================
-# SAFE DATA LOAD
-# =========================
-data = get_market_data()
-
-if not data or len(data) < 30:
-    print("❌ ERROR: insufficient data")
-    raise SystemExit
-
-prices = []
-for x in data:
-    try:
-        prices.append(x["price"])
-    except Exception:
-        prices.append(x)
-
-
-# =========================
-# MAIN LOOP
-# =========================
-for i in range(20, len(prices)):
-
-    try:
-        cooldown_manager.update()
-        price = prices[i]
-
-        # =====================
-        # POSITION UPDATE
-        # =====================
-        result = update_positions(price)
-
-        if result:
-            pnl = result.get("pnl", 0)
-            balance += pnl
-
-            reason = result.get("close_reason")
-
-            if reason == "TP":
-                wins += 1
-            elif reason == "SL":
-                losses += 1
-            elif reason == "BE":
-                breakevens += 1
-
-            total_trades += 1
-
-
-        # =====================
-        # MARKET ENGINE
-        # =====================
-        tr_raw = trend(prices, i)
-        vol = float(volatility(prices, i))
-
-        if isinstance(tr_raw, str):
-            t = tr_raw.upper()
-            tr_dir = 1 if t in ["UP", "BULL", "BULLISH", "BUY", "LONG"] else -1 if t in ["DOWN", "BEAR", "BEARISH", "SELL", "SHORT"] else 0
+        connected = await self.executor.connect()
+        if connected:
+            logger.info("✅ MT5/Exness conectado via MetaAPI")
         else:
+            logger.warning("⚠️  Sin MetaAPI — modo SIMULACION activo")
+
+        self._running = True
+        await asyncio.gather(
+            self._main_loop(),
+            self._position_manager_loop(),
+            self._stats_loop(),
+        )
+
+    async def _main_loop(self):
+        while self._running:
+            self._cycle += 1
+            self._stats["cycles"] += 1
+            logger.info(f"\n{'─'*50}")
+            logger.info(f"CICLO #{self._cycle} | {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}")
+
             try:
-                tr_dir = 1 if float(tr_raw) > 0 else -1
-            except:
-                tr_dir = 0
+                all_data = await self.market.refresh_all()
+                if not all_data:
+                    await asyncio.sleep(DATA_REFRESH)
+                    continue
 
+                tasks = [self._analyze_symbol(sym, mtf) for sym, mtf in all_data.items()]
+                await asyncio.gather(*tasks, return_exceptions=True)
 
-        prev_high = max(prices[i - 12:i])
-        prev_low = min(prices[i - 12:i])
+            except Exception as e:
+                logger.error(f"Main loop error: {e}", exc_info=True)
 
-        bos_up, bos_down = bos(price, prev_high, prev_low)
-        choch_up, choch_down = choch(tr_dir, bos_up, bos_down)
+            await asyncio.sleep(LOOP_INTERVAL)
 
-        sweep_up, sweep_down = liquidity_sweep(prices, i)
-        displacement_valid, displacement_strength = displacement(prices, i)
+    async def _analyze_symbol(self, symbol: str, mtf):
+        try:
+            quant = await self.quant.analyze(mtf)
+            if not quant.valid:
+                logger.debug(f"Skip {symbol}: {quant.reject_reason}")
+                return
 
-        # =========================
-        # SAFE SWEEP FILTER
-        # =========================
-        if displacement_strength < 0.8:
-            sweep_up = False
-            sweep_down = False
-
-
-        # =========================
-        # REGIME
-        # =========================
-        range_size = prev_high - prev_low
-
-        if vol > 0.75 and (bos_up or bos_down):
-            regime = "EXPANSION"
-        elif range_size < 25 and vol < 0.55:
-            regime = "RANGE"
-        else:
-            regime = "TREND"
-
-
-        # =========================
-        # BIAS MEMORY SAFE
-        # =========================
-        bias_memory *= 0.90
-
-        if bos_up:
-            bias_memory += 0.8
-        if choch_up:
-            bias_memory += 1.0
-        if sweep_down:
-            bias_memory += 0.4
-        if displacement_valid:
-            bias_memory += 0.6
-
-        if bos_down:
-            bias_memory -= 0.8
-        if choch_down:
-            bias_memory -= 1.0
-        if sweep_up:
-            bias_memory -= 0.4
-
-        if abs(bias_memory) > 2.5 and vol < 0.4:
-            bias_memory *= 0.6
-
-        bias_memory = max(min(bias_memory, 3.5), -3.5)
-
-        bias = (
-            "BULLISH" if bias_memory > 0.6
-            else "BEARISH" if bias_memory < -0.6
-            else "NEUTRAL"
-        )
-
-
-        # =========================
-        # SCORE SAFE
-        # =========================
-        base_score = calculate_score(
-            price=price,
-            trend=tr_dir,
-            bos_up=bos_up,
-            bos_down=bos_down,
-            choch_up=choch_up,
-            choch_down=choch_down,
-            volatility=vol
-        )
-
-        structure_score = (
-            (0.18 if bos_up or bos_down else 0) +
-            (0.18 if choch_up or choch_down else 0) +
-            (0.18 if sweep_up or sweep_down else 0) +
-            (displacement_strength * 0.34 if displacement_valid else 0)
-        )
-
-        raw_score = (base_score * 0.55) + (structure_score * 0.45)
-
-        sc = raw_score * (1 - abs(bias_memory) * 0.04)
-        sc = max(0.0, min(sc, 1.0))
-
-
-        # =========================
-        # ENTRY QUALITY
-        # =========================
-        eq = entry_quality(
-            displacement_strength=displacement_strength,
-            sweep_up=sweep_up,
-            sweep_down=sweep_down,
-            bos_up=bos_up,
-            bos_down=bos_down,
-            choch_up=choch_up,
-            choch_down=choch_down,
-            volatility=vol,
-            bias=bias,
-            score=sc
-        )
-
-        if not (bos_up or bos_down or choch_up or choch_down):
-            eq *= 0.85
-
-
-        # =========================
-        # SIGNAL ENGINE
-        # =========================
-        base_signal = generate_signal(
-            regime=regime,
-            score=sc,
-            bias=bias,
-            bias_memory=bias_memory,
-            bos_up=bos_up,
-            bos_down=bos_down,
-            choch_up=choch_up,
-            choch_down=choch_down,
-            sweep_up=sweep_up,
-            sweep_down=sweep_down,
-            displacement_valid=displacement_valid,
-            volatility=vol
-        )
-
-
-        # =========================
-        # SIGNAL GATE
-        # =========================
-        min_score = 0.88 if regime == "EXPANSION" else 0.86 if regime == "TREND" else 0.90
-
-        alignment_ok = (
-            (bias == "BULLISH" and tr_dir == 1) or
-            (bias == "BEARISH" and tr_dir == -1)
-        )
-
-        force_trade = (
-            sc >= 0.94 and
-            eq >= 0.82 and
-            alignment_ok and
-            displacement_strength > 1.0
-        )
-
-        eq_threshold = 0.75 if regime == "EXPANSION" else 0.65 if regime == "TREND" else 0.60
-
-        if cooldown_manager.get_cooldown() > 0 and not force_trade:
-            signal = "WAIT"
-        elif sc < min_score:
-            signal = "WAIT"
-        elif eq < eq_threshold:
-            signal = "WAIT"
-        else:
-            signal = base_signal
-
-
-        # =====================
-        # EXECUTION
-        # =====================
-        exec_result = execute(
-            signal=signal,
-            price=price,
-            atr=vol,
-            score=sc,
-            balance=balance
-        )
-
-
-        # =====================
-        # SAVE STATE SAFE
-        # =====================
-        save_state({
-            "balance": balance,
-            "peak": peak,
-            "wins": wins,
-            "losses": losses,
-            "breakevens": breakevens,
-            "total_trades": total_trades,
-            "bias_memory": bias_memory,
-            "cooldown": cooldown_manager.get_cooldown()
-        })
-
-
-        # =====================
-        # RISK CONTROL
-        # =====================
-        if balance > peak:
-            peak = balance
-
-        dd = (peak - balance) / peak if peak > 0 else 0
-
-        if not risk_control(dd, config.MAX_DRAWDOWN):
-            print("🛑 MAX DRAWDOWN HIT - STOP")
-            break
-
-
-        # =====================
-        # WINRATE
-        # =====================
-        closed = wins + losses
-        wr = wins / closed if closed > 0 else 0
-
-
-        # =====================
-        # LOG
-        # =====================
-        if i % 50 == 0:
-            print(
-                f"PRICE:{price:.2f} "
-                f"SCORE:{sc:.2f} "
-                f"REGIME:{regime} "
-                f"BIAS:{bias}({bias_memory:.2f}) "
-                f"EQ:{eq:.2f} "
-                f"DISP:{displacement_strength:.2f} "
-                f"SWEEP:{sweep_up}/{sweep_down} "
-                f"SIGNAL:{signal} "
-                f"BAL:{balance:.2f} "
-                f"WR:{wr:.2f}"
+            self._stats["signals"] += 1
+            logger.info(
+                f"SENAL | {symbol} {quant.direction.upper()} | "
+                f"Score:{quant.final_score*100:.1f}% | {quant.pattern} | RR:1:{quant.rr}"
             )
 
-    except Exception as e:
-        print("⚠️ LOOP ERROR:", e)
-        continue
+            ai = await self.ai.validate(quant)
+            logger.info(
+                f"AI | {symbol} | Score:{ai.score:.0f} | "
+                f"Approved:{ai.approved} | {ai.confidence} | {ai.market_regime}"
+            )
+            for w in ai.warnings:
+                logger.warning(f"   WARNING: {w}")
+
+            if ai.approved and ai.score >= AI_MIN_SCORE:
+                await self._execute(quant, ai)
+            else:
+                logger.info(f"BLOCK {symbol} | AI score:{ai.score:.0f} | {ai.reasoning}")
+
+        except Exception as e:
+            logger.error(f"Error {symbol}: {e}")
+
+    async def _execute(self, quant, ai):
+        symbol = quant.symbol
+        open_pos = self.executor.open_positions
+        if any(p.symbol == symbol for p in open_pos.values()):
+            logger.info(f"Skip {symbol} — posicion ya abierta")
+            return
+
+        result = await self.executor.send_order(
+            symbol=symbol, direction=quant.direction,
+            lots=0.01, entry=quant.entry,
+            sl=quant.stop_loss, tp=quant.take_profit,
+            score=quant.final_score * 100, pattern=quant.pattern,
+        )
+
+        if result.success:
+            self._stats["trades"] += 1
+            logger.info(
+                f"TRADE OK | {symbol} {quant.direction.upper()} | "
+                f"Entry:{result.entry_price} SL:{quant.stop_loss} TP:{quant.take_profit} | "
+                f"RR:1:{quant.rr} | ID:{result.order_id}"
+            )
+        else:
+            logger.error(f"TRADE FAIL | {symbol} | {result.error}")
+
+    async def _position_manager_loop(self):
+        while self._running:
+            await asyncio.sleep(30)
+            try:
+                prices = {}
+                for sym in SYMBOLS:
+                    cached = self.market.get_cached(sym)
+                    if cached:
+                        prices[sym] = cached.current_price
+                if prices:
+                    await self.executor.manage_positions(prices)
+            except Exception as e:
+                logger.error(f"Position manager: {e}")
+
+    async def _stats_loop(self):
+        while self._running:
+            await asyncio.sleep(1800)
+            s  = self._stats
+            wr = (s["wins"] / s["trades"] * 100) if s["trades"] > 0 else 0
+            logger.info(
+                f"\n{'='*50}\n"
+                f"STATS | Ciclos:{s['cycles']} Senales:{s['signals']} "
+                f"Trades:{s['trades']} WR:{wr:.1f}%\n"
+                f"Balance:${self.executor.balance:,.2f} | "
+                f"Posiciones:{len(self.executor.open_positions)}\n"
+                f"{'='*50}"
+            )
+
+    async def stop(self):
+        self._running = False
+        await self.market.close()
+        await self.ai.close()
+        await self.executor.close()
+        logger.info("Bot detenido limpiamente")
+
+
+async def main():
+    bot = SMCQuantBot()
+    try:
+        await bot.start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        await bot.stop()
+
+if __name__ == "__main__":
+    asyncio.run(main())
