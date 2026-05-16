@@ -331,7 +331,6 @@ class MarketDataEngine:
                 volume=sum(b.volume for b in chunk),
             ))
         return result
-        
         ema = MarketDataEngine.ema
         atr = MarketDataEngine.atr
         rsi = MarketDataEngine.rsi
