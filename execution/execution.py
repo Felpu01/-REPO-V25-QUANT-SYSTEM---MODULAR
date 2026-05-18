@@ -20,7 +20,7 @@ from config import (
 
 logger = logging.getLogger("Executor")
 
-BASE_URL = "https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai"
+BASE_URL = "https://mt-client-api-v1.london.agiliumtrade.ai"
 
 
 @dataclass
