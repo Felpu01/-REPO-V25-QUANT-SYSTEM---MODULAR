@@ -24,7 +24,7 @@ TF_META = {
     "H1": "1h", "H4": "4h", "D1": "1d"
 }
 
-BASE_URL = "https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai"
+BASE_URL = "https://mt-client-api-v1.london.agiliumtrade.ai"
 
 
 @dataclass
