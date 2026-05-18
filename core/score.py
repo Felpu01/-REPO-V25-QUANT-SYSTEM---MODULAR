@@ -1,6 +1,7 @@
 """
-QUANT SCORING ENGINE
-Score probabilístico multi-timeframe para setups sniper.
+QUANT SCORING ENGINE — Fase 2
+Score probabilístico multi-timeframe institucional.
+Integra: SMC + Sweep + FVG + News + Learning adaptativo.
 """
 
 import logging
@@ -8,9 +9,19 @@ import numpy as np
 from dataclasses import dataclass, field
 from data.market_data import MultiTF, ema, atr, rsi
 from core.structure import MultiTFSMC, SMCAnalysis
+from core.sweep_engine import SweepEngine, FVGEngine, MitigationEngine
+from core.news_engine import NewsEngine
+from core.learning_engine import LearningEngine
 from config import TF_WEIGHTS, SCORE_THRESHOLD, TRADE_SESSIONS
 
 logger = logging.getLogger("QuantScore")
+
+# Instancias compartidas
+_sweep_engine     = SweepEngine()
+_fvg_engine       = FVGEngine()
+_mitigation_engine= MitigationEngine()
+_news_engine      = NewsEngine()
+_learning_engine  = LearningEngine()
 
 
 @dataclass
@@ -23,6 +34,10 @@ class QuantResult:
     volatility_score: float
     session_score: float
     confluence_score: float
+    sweep_score: float
+    fvg_score: float
+    news_score: float
+    learning_score: float
     htf_bias: str
     entry_tf_score: float
     pattern: str
@@ -31,6 +46,9 @@ class QuantResult:
     take_profit: float
     rr: float
     atr_h1: float
+    sweep_detected: bool = False
+    manipulation_detected: bool = False
+    news_warning: str = "none"
     valid: bool = False
     reject_reason: str = ""
 
@@ -44,12 +62,18 @@ class QuantResult:
             "volatility": round(self.volatility_score * 100, 1),
             "session": round(self.session_score * 100, 1),
             "confluence": round(self.confluence_score * 100, 1),
+            "sweep": round(self.sweep_score * 100, 1),
+            "fvg": round(self.fvg_score * 100, 1),
+            "news": self.news_warning,
+            "learning": round(self.learning_score * 100, 1),
             "htf_bias": self.htf_bias,
             "pattern": self.pattern,
             "entry": self.entry,
             "sl": self.stop_loss,
             "tp": self.take_profit,
             "rr": round(self.rr, 2),
+            "sweep_detected": self.sweep_detected,
+            "manipulation": self.manipulation_detected,
             "valid": self.valid,
             "reject": self.reject_reason,
         }
@@ -58,7 +82,7 @@ class QuantResult:
 class QuantScoringEngine:
     def __init__(self):
         self.smc = MultiTFSMC()
-        logger.info("QuantScoringEngine iniciado")
+        logger.info("QuantScoringEngine Fase 2 iniciado")
 
     async def analyze(self, mtf: MultiTF) -> QuantResult:
         symbol = mtf.symbol
@@ -66,6 +90,8 @@ class QuantScoringEngine:
             symbol=symbol, direction="none", final_score=0.0,
             smc_score=0.0, momentum_score=0.0, volatility_score=0.0,
             session_score=0.0, confluence_score=0.0,
+            sweep_score=0.0, fvg_score=0.0,
+            news_score=1.0, learning_score=0.5,
             htf_bias="neutral", entry_tf_score=0.0,
             pattern="none", entry=0.0, stop_loss=0.0,
             take_profit=0.0, rr=0.0, atr_h1=0.0,
@@ -75,7 +101,22 @@ class QuantScoringEngine:
             result.reject_reason = "datos insuficientes"
             return result
 
-        # 1. SMC Multi-TF
+        # ── 1. Noticias — verificar primero ──────────────────
+        news = await _news_engine.analyze([symbol])
+        result.news_warning = news.volatility_warning
+        if news.should_pause:
+            result.reject_reason = f"noticia alto impacto: {news.volatility_warning}"
+            return result
+
+        # Penalización por noticias cercanas
+        if news.volatility_warning == "medium":
+            result.news_score = 0.7
+        elif news.volatility_warning == "high":
+            result.news_score = 0.4
+        else:
+            result.news_score = 1.0
+
+        # ── 2. SMC Multi-TF ───────────────────────────────────
         analyses = self.smc.analyze_all(mtf)
         htf_bias = self.smc.get_htf_bias(analyses)
         result.htf_bias = htf_bias
@@ -87,7 +128,6 @@ class QuantScoringEngine:
         direction = "buy" if htf_bias == "bullish" else "sell"
         result.direction = direction
 
-        # SMC score ponderado
         smc_weighted = 0.0
         smc_weight   = 0.0
         for tf, w in TF_WEIGHTS.items():
@@ -99,45 +139,96 @@ class QuantScoringEngine:
         result.smc_score = smc_weighted / smc_weight if smc_weight > 0 else 0.0
         result.entry_tf_score = self.smc.get_entry_tf_score(analyses, htf_bias) / 100
 
-        # 2. Momentum
+        # ── 3. Sweep Engine ───────────────────────────────────
+        h1_data = mtf.H1
+        if h1_data:
+            sweep_analysis = _sweep_engine.analyze(h1_data)
+            result.sweep_score = sweep_analysis.sweep_score / 100
+            result.sweep_detected = bool(sweep_analysis.sweep_events)
+            result.manipulation_detected = sweep_analysis.manipulation_detected
+
+            # Validar alineación del sweep con dirección
+            if sweep_analysis.recent_sweep:
+                sweep_dir = sweep_analysis.recent_sweep.direction
+                if sweep_dir != direction:
+                    result.sweep_score *= 0.5  # penalizar si el sweep no alinea
+
+        # ── 4. FVG Institucional ──────────────────────────────
+        if h1_data:
+            institutional_fvgs = _fvg_engine.analyze(h1_data)
+            premium_fvgs = [f for f in institutional_fvgs if f.is_premium]
+            if premium_fvgs:
+                # FVG grado A+ o A presente
+                fvg_aligned = [
+                    f for f in premium_fvgs
+                    if (direction == "buy" and f.type == "bullish") or
+                       (direction == "sell" and f.type == "bearish")
+                ]
+                result.fvg_score = min(1.0, len(fvg_aligned) * 0.4 + 0.2)
+            elif institutional_fvgs:
+                result.fvg_score = 0.3
+            else:
+                result.fvg_score = 0.0
+
+        # ── 5. Momentum ───────────────────────────────────────
         result.momentum_score = self._momentum_score(mtf, direction)
 
-        # 3. Volatilidad
+        # ── 6. Volatilidad ────────────────────────────────────
         result.volatility_score, result.atr_h1 = self._volatility_score(mtf, symbol)
 
-        # 4. Sesion
-        result.session_score = self._session_score(mtf.session)
+        # ── 7. Sesión ─────────────────────────────────────────
+        base_session = self._session_score(mtf.session)
+        session_mult = _learning_engine.get_session_multiplier(mtf.session)
+        result.session_score = min(1.0, base_session * session_mult)
 
-        # 5. Confluencia
+        # ── 8. Confluencia ────────────────────────────────────
         result.confluence_score = self._confluence_score(analyses, direction)
 
-        # 6. Score final
-        result.final_score = (
-            result.smc_score        * 0.35 +
-            result.entry_tf_score   * 0.20 +
-            result.momentum_score   * 0.15 +
-            result.confluence_score * 0.15 +
-            result.volatility_score * 0.10 +
-            result.session_score    * 0.05
-        )
+        # ── 9. Learning Score ─────────────────────────────────
+        pattern_candidate = self._identify_pattern(analyses, direction)
+        if _learning_engine.should_avoid_pattern(pattern_candidate):
+            result.reject_reason = f"patrón {pattern_candidate} con bajo win rate histórico"
+            return result
 
-        # 7. Setup
-        if result.final_score >= SCORE_THRESHOLD * 0.85:
+        pattern_wr = _learning_engine.get_pattern_win_rate(pattern_candidate)
+        symbol_mult = _learning_engine.get_symbol_multiplier(symbol)
+        result.learning_score = min(1.0, (0.5 + pattern_wr * 0.5) * symbol_mult)
+
+        # ── 10. Score Final Ponderado ─────────────────────────
+        result.final_score = (
+            result.smc_score        * 0.25 +
+            result.entry_tf_score   * 0.15 +
+            result.sweep_score      * 0.15 +
+            result.fvg_score        * 0.10 +
+            result.momentum_score   * 0.12 +
+            result.confluence_score * 0.10 +
+            result.volatility_score * 0.07 +
+            result.session_score    * 0.03 +
+            result.learning_score   * 0.03
+        ) * result.news_score  # multiplicador de noticias
+
+        # ── 11. Setup ─────────────────────────────────────────
+        threshold = _learning_engine.get_recommended_threshold()
+        if result.final_score >= threshold * 0.85:
             self._generate_setup(result, analyses, mtf)
 
-        # 8. Validacion
-        if result.final_score >= SCORE_THRESHOLD and result.rr >= 2.5:
+        # ── 12. Validación ────────────────────────────────────
+        min_rr = _learning_engine._insights.recommended_min_rr
+        if result.final_score >= threshold and result.rr >= min_rr:
             result.valid = True
-            result.pattern = self._identify_pattern(analyses, direction)
+            result.pattern = pattern_candidate
         else:
-            if result.final_score < SCORE_THRESHOLD:
-                result.reject_reason = f"score {result.final_score:.2f} < {SCORE_THRESHOLD}"
-            elif result.rr < 2.5:
-                result.reject_reason = f"RR {result.rr:.2f} < 2.5"
+            if result.final_score < threshold:
+                result.reject_reason = f"score {result.final_score:.2f} < {threshold:.2f}"
+            elif result.rr < min_rr:
+                result.reject_reason = f"RR {result.rr:.2f} < {min_rr:.1f}"
 
         logger.info(
             f"📊 {symbol} | {direction.upper()} | "
-            f"Score:{result.final_score*100:.1f}% | Valid:{result.valid}"
+            f"Score:{result.final_score*100:.1f}% | "
+            f"Sweep:{result.sweep_detected} | "
+            f"Manip:{result.manipulation_detected} | "
+            f"Valid:{result.valid}"
         )
         return result
 
@@ -180,24 +271,20 @@ class QuantScoringEngine:
             score = 0.2
         else:
             norm = (atr_val - atr_min) / (atr_max - atr_min)
-            if 0.3 <= norm <= 0.6:
-                score = 1.0
-            elif norm < 0.3:
-                score = 0.5 + norm
-            else:
-                score = max(0.4, 1.0 - (norm - 0.6) * 2)
+            if 0.3 <= norm <= 0.6:   score = 1.0
+            elif norm < 0.3:         score = 0.5 + norm
+            else:                    score = max(0.4, 1.0 - (norm - 0.6) * 2)
         return round(score, 3), atr_val
 
     def _session_score(self, session: str) -> float:
-        scores = {
+        return {
             "ln_ny_overlap": 1.00,
             "london":        0.85,
             "new_york":      0.80,
             "tokyo":         0.50,
             "sydney":        0.30,
             "unknown":       0.20,
-        }
-        return scores.get(session, 0.20)
+        }.get(session, 0.20)
 
     def _confluence_score(self, analyses: dict, direction: str) -> float:
         confirmations = 0
@@ -228,13 +315,27 @@ class QuantScoringEngine:
                 if valid_obs:
                     ob = valid_obs[0]
                     break
+
+        # Usar FVG institucional si no hay OB
+        if ob is None and mtf.H1:
+            fvgs = _fvg_engine.analyze(mtf.H1)
+            premium = [f for f in fvgs if f.is_premium and f.type == ("bullish" if direction == "buy" else "bearish")]
+            if premium:
+                best_fvg = premium[0]
+                if direction == "buy":
+                    ob_mock_high = best_fvg.high
+                    ob_mock_low  = best_fvg.low
+                else:
+                    ob_mock_high = best_fvg.high
+                    ob_mock_low  = best_fvg.low
+
         if ob and h1_atr > 0:
             if direction == "buy":
                 entry = ob.high
                 sl    = ob.low - h1_atr * 0.1
                 risk  = entry - sl
                 if risk > 0:
-                    tp  = entry + risk * 3.0
+                    tp = entry + risk * 3.0
                     result.entry       = round(entry, 5)
                     result.stop_loss   = round(sl, 5)
                     result.take_profit = round(tp, 5)
@@ -244,7 +345,7 @@ class QuantScoringEngine:
                 sl    = ob.high + h1_atr * 0.1
                 risk  = sl - entry
                 if risk > 0:
-                    tp  = entry - risk * 3.0
+                    tp = entry - risk * 3.0
                     result.entry       = round(entry, 5)
                     result.stop_loss   = round(sl, 5)
                     result.take_profit = round(tp, 5)
@@ -279,3 +380,7 @@ class QuantScoringEngine:
         if has_ob and has_fvg:                           return "OB_FVG_Confluence"
         if has_bos:                                      return "BOS_Continuation"
         return "Structure_Setup"
+
+# Exportar learning engine para uso en main
+def get_learning_engine() -> LearningEngine:
+    return _learning_engine
