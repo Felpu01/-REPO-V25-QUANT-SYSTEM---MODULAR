@@ -1,16 +1,18 @@
 """
-BACKTESTING ENGINE INSTITUCIONAL
-Backtesting multi-activo con datos históricos reales.
-Soporta: Walk Forward, Monte Carlo, Multi-timeframe.
-Fuentes: Yahoo Finance (gratuito) para datos históricos maximos.
+BACKTESTING ENGINE INSTITUCIONAL — V2
+Fuentes: Binance Vision (BTC/ETH) + Dukascopy (EUR/XAU/NAS)
+DuckDB resampling | Walk-Forward | Monte Carlo | Checkpoints
+Slippage real | Spread dinamico | SMC completo
 """
 
 import asyncio
-import logging
+import io
 import json
+import logging
 import os
+import zipfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 import numpy as np
 
@@ -22,19 +24,62 @@ try:
 except ImportError:
     AIOHTTP_OK = False
 
-# Mapeo de símbolos a Yahoo Finance
-YAHOO_SYMBOLS = {
-    "BTCUSD": "BTC-USD",
-    "ETHUSD": "ETH-USD",
-    "XAUUSD": "GC=F",
-    "EURUSD": "EURUSD=X",
-    "NAS100": "^NDX",
+try:
+    import duckdb
+    DUCKDB_OK = True
+except ImportError:
+    DUCKDB_OK = False
+
+# ─── Configuración de fuentes ─────────────────────────────────
+
+BINANCE_SYMBOLS = {
+    "BTCUSD": "BTCUSDT",
+    "ETHUSD": "ETHUSDT",
 }
 
+DUKASCOPY_SYMBOLS = {
+    "EURUSD": "EURUSD",
+    "XAUUSD": "XAUUSD",
+    "NAS100": "USTEC",
+}
+
+# Slippage por activo (en pips)
+SLIPPAGE_PIPS = {
+    "BTCUSD": 15.0,
+    "ETHUSD": 3.0,
+    "XAUUSD": 0.05,
+    "EURUSD": 0.00015,
+    "NAS100": 2.0,
+}
+
+# Spread promedio por activo
+SPREAD = {
+    "BTCUSD": 20.0,
+    "ETHUSD": 2.0,
+    "XAUUSD": 0.03,
+    "EURUSD": 0.00012,
+    "NAS100": 1.5,
+}
+
+CACHE_DIR    = "backtest_cache"
 RESULTS_FILE = "backtest_results.json"
+CHECKPOINT_FILE = "backtest_checkpoint.json"
+
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 # ─── Estructuras ─────────────────────────────────────────────
+
+@dataclass
+class Bar:
+    time: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    spread: float = 0.0
+
 
 @dataclass
 class BacktestTrade:
@@ -47,11 +92,13 @@ class BacktestTrade:
     exit_bar: int = -1
     exit_price: float = 0.0
     outcome: str = "pending"
-    pnl_pct: float = 0.0
+    pnl_r: float = 0.0
     rr_achieved: float = 0.0
     bars_held: int = 0
     pattern: str = ""
     score: float = 0.0
+    slippage: float = 0.0
+    year: int = 0
 
 
 @dataclass
@@ -60,6 +107,7 @@ class BacktestResult:
     timeframe: str
     start_date: str
     end_date: str
+    source: str = ""
     total_trades: int = 0
     wins: int = 0
     losses: int = 0
@@ -69,18 +117,21 @@ class BacktestResult:
     expectancy: float = 0.0
     max_drawdown: float = 0.0
     sharpe_ratio: float = 0.0
-    total_pnl_pct: float = 0.0
-    avg_win_pct: float = 0.0
-    avg_loss_pct: float = 0.0
+    total_r: float = 0.0
+    avg_win_r: float = 0.0
+    avg_loss_r: float = 0.0
     avg_rr: float = 0.0
     avg_bars_held: float = 0.0
+    avg_slippage: float = 0.0
     trades: list = field(default_factory=list)
     equity_curve: list = field(default_factory=list)
+    yearly_stats: dict = field(default_factory=dict)
 
     def to_dict(self):
         return {
             "symbol": self.symbol,
             "timeframe": self.timeframe,
+            "source": self.source,
             "period": f"{self.start_date} → {self.end_date}",
             "trades": self.total_trades,
             "win_rate": round(self.win_rate * 100, 1),
@@ -88,95 +139,150 @@ class BacktestResult:
             "expectancy": round(self.expectancy, 4),
             "max_drawdown": round(self.max_drawdown * 100, 2),
             "sharpe": round(self.sharpe_ratio, 2),
-            "total_pnl": round(self.total_pnl_pct, 2),
+            "total_r": round(self.total_r, 2),
             "avg_rr": round(self.avg_rr, 2),
+            "avg_slippage": round(self.avg_slippage, 5),
+            "yearly_stats": self.yearly_stats,
         }
 
     def print_report(self):
-        print(f"\n{'='*55}")
-        print(f"  BACKTEST REPORT — {self.symbol} {self.timeframe}")
-        print(f"{'='*55}")
+        print(f"\n{'='*60}")
+        print(f"  BACKTEST — {self.symbol} {self.timeframe} [{self.source}]")
+        print(f"{'='*60}")
         print(f"  Periodo:        {self.start_date} → {self.end_date}")
         print(f"  Total trades:   {self.total_trades}")
         print(f"  Win Rate:       {self.win_rate*100:.1f}%")
         print(f"  Profit Factor:  {self.profit_factor:.2f}")
-        print(f"  Expectancy:     {self.expectancy:.4f}")
+        print(f"  Expectancy:     {self.expectancy:.4f}R")
         print(f"  Max Drawdown:   {self.max_drawdown*100:.2f}%")
         print(f"  Sharpe Ratio:   {self.sharpe_ratio:.2f}")
-        print(f"  Total PnL:      {self.total_pnl_pct:.2f}%")
+        print(f"  Total R:        {self.total_r:.2f}R")
         print(f"  Avg RR:         {self.avg_rr:.2f}")
-        print(f"  Avg Win:        {self.avg_win_pct:.2f}%")
-        print(f"  Avg Loss:       {self.avg_loss_pct:.2f}%")
-        print(f"{'='*55}\n")
+        print(f"  Avg Slippage:   {self.avg_slippage:.5f}")
+        if self.yearly_stats:
+            print(f"\n  Stats por año:")
+            for yr, st in sorted(self.yearly_stats.items()):
+                print(
+                    f"    {yr} | WR:{st['wr']:.0f}% | "
+                    f"Trades:{st['trades']} | R:{st['total_r']:.1f}"
+                )
+        print(f"{'='*60}\n")
 
 
 @dataclass
 class MonteCarloResult:
     simulations: int
-    median_return: float
-    percentile_5: float
-    percentile_25: float
-    percentile_75: float
-    percentile_95: float
+    median_r: float
+    p5: float
+    p25: float
+    p75: float
+    p95: float
     prob_positive: float
-    max_drawdown_median: float
+    max_dd_median: float
+
+    def print_report(self, symbol: str):
+        print(f"\n{'='*50}")
+        print(f"  MONTE CARLO — {symbol} ({self.simulations} sims)")
+        print(f"{'='*50}")
+        print(f"  Mediana retorno:  {self.median_r:.2f}R")
+        print(f"  Percentil  5%:    {self.p5:.2f}R")
+        print(f"  Percentil 25%:    {self.p25:.2f}R")
+        print(f"  Percentil 75%:    {self.p75:.2f}R")
+        print(f"  Percentil 95%:    {self.p95:.2f}R")
+        print(f"  Prob. positivo:   {self.prob_positive*100:.1f}%")
+        print(f"  Max DD mediana:   {self.max_dd_median*100:.1f}%")
+        print(f"{'='*50}\n")
 
 
-# ─── Data Fetcher ─────────────────────────────────────────────
+# ─── Fetchers ─────────────────────────────────────────────────
 
-class HistoricalDataFetcher:
+class BinanceFetcher:
+    """Descarga datos M1 históricos desde Binance Vision (gratuito, sin API key)."""
+
+    BASE_URL = "https://data.binance.vision/data/spot/monthly/klines"
+
     def __init__(self):
         self._session = None
 
     async def _get_session(self):
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
+            connector = aiohttp.TCPConnector(ssl=False)
+            self._session = aiohttp.ClientSession(connector=connector)
         return self._session
 
-    async def fetch_yahoo(self, symbol: str, period: str = "max") -> list:
-        """
-        Fetch datos históricos máximos desde Yahoo Finance.
-        period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max
-        """
-        yahoo_sym = YAHOO_SYMBOLS.get(symbol, symbol)
+    async def fetch_symbol(self, symbol: str, start_year: int = 2017) -> list[Bar]:
+        """Descarga todos los meses disponibles para un símbolo."""
+        binance_sym = BINANCE_SYMBOLS.get(symbol, symbol)
+        cache_file  = os.path.join(CACHE_DIR, f"{symbol}_M1_binance.json")
+
+        # Usar cache si existe
+        if os.path.exists(cache_file):
+            logger.info(f"Binance cache hit: {symbol}")
+            with open(cache_file, "r") as f:
+                data = json.load(f)
+            return [Bar(**b) for b in data]
+
+        logger.info(f"Descargando {symbol} desde Binance Vision ({start_year}-presente)...")
+        all_bars = []
+        now = datetime.now(timezone.utc)
+
+        for year in range(start_year, now.year + 1):
+            for month in range(1, 13):
+                if year == now.year and month >= now.month:
+                    break
+                bars = await self._fetch_month(binance_sym, symbol, year, month)
+                if bars:
+                    all_bars.extend(bars)
+                    logger.info(f"  {symbol} {year}-{month:02d}: {len(bars)} barras M1")
+                await asyncio.sleep(0.3)  # Rate limit
+
+        if all_bars:
+            with open(cache_file, "w") as f:
+                json.dump([vars(b) for b in all_bars], f)
+            logger.info(f"Binance {symbol}: {len(all_bars)} barras totales cacheadas")
+
+        return all_bars
+
+    async def _fetch_month(
+        self, binance_sym: str, symbol: str, year: int, month: int
+    ) -> list[Bar]:
         url = (
-            f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_sym}"
-            f"?interval=1d&range={period}"
+            f"{self.BASE_URL}/{binance_sym}/1m/"
+            f"{binance_sym}-1m-{year}-{month:02d}.zip"
         )
         try:
             sess = await self._get_session()
-            headers = {"User-Agent": "Mozilla/5.0"}
-            async with sess.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as r:
+            async with sess.get(url, timeout=aiohttp.ClientTimeout(total=30)) as r:
                 if r.status != 200:
-                    logger.error(f"Yahoo Finance {symbol}: HTTP {r.status}")
                     return []
-                data = await r.json()
-                result = data.get("chart", {}).get("result", [])
-                if not result:
-                    return []
-                chart = result[0]
-                timestamps = chart.get("timestamp", [])
-                ohlcv = chart.get("indicators", {}).get("quote", [{}])[0]
+                content = await r.read()
+                with zipfile.ZipFile(io.BytesIO(content)) as z:
+                    csv_name = z.namelist()[0]
+                    with z.open(csv_name) as f:
+                        lines = f.read().decode().strip().split("\n")
 
                 bars = []
-                for i, ts in enumerate(timestamps):
-                    try:
-                        bars.append({
-                            "time":   datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
-                            "open":   float(ohlcv["open"][i]  or 0),
-                            "high":   float(ohlcv["high"][i]  or 0),
-                            "low":    float(ohlcv["low"][i]   or 0),
-                            "close":  float(ohlcv["close"][i] or 0),
-                            "volume": float(ohlcv["volume"][i] or 0),
-                        })
-                    except (IndexError, TypeError):
+                spread = SPREAD.get(symbol, 0)
+                for line in lines:
+                    parts = line.split(",")
+                    if len(parts) < 6:
                         continue
-
-                logger.info(f"Yahoo Finance {symbol}: {len(bars)} barras descargadas")
-                return [b for b in bars if b["close"] > 0]
-
+                    try:
+                        ts = int(parts[0]) / 1000
+                        bars.append(Bar(
+                            time=datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
+                            open=float(parts[1]),
+                            high=float(parts[2]),
+                            low=float(parts[3]),
+                            close=float(parts[4]),
+                            volume=float(parts[5]),
+                            spread=spread,
+                        ))
+                    except (ValueError, IndexError):
+                        continue
+                return bars
         except Exception as e:
-            logger.error(f"fetch_yahoo {symbol}: {e}")
+            logger.debug(f"Binance {binance_sym} {year}-{month:02d}: {e}")
             return []
 
     async def close(self):
@@ -184,341 +290,113 @@ class HistoricalDataFetcher:
             await self._session.close()
 
 
-# ─── Backtest Engine ──────────────────────────────────────────
+class DukascopyFetcher:
+    """Descarga datos históricos desde Dukascopy (gratuito, sin API key)."""
 
-class BacktestEngine:
+    BASE_URL = "https://datafeed.dukascopy.com/datafeed"
+
     def __init__(self):
-        self.fetcher = HistoricalDataFetcher()
-        logger.info("BacktestEngine institucional iniciado")
+        self._session = None
 
-    async def run(
-        self,
-        symbol: str,
-        timeframe: str = "D1",
-        period: str = "max",
-        risk_pct: float = 0.01,
-        min_rr: float = 2.5,
-        score_threshold: float = 0.65,
-    ) -> BacktestResult:
-        """Corre backtest completo para un símbolo."""
-        logger.info(f"Iniciando backtest {symbol} {timeframe} — periodo: {period}")
-
-        # 1. Fetch datos históricos
-        raw_bars = await self.fetcher.fetch_yahoo(symbol, period)
-        if len(raw_bars) < 100:
-            logger.error(f"Datos insuficientes para {symbol}: {len(raw_bars)} barras")
-            return BacktestResult(symbol=symbol, timeframe=timeframe,
-                                  start_date="N/A", end_date="N/A")
-
-        logger.info(f"{symbol}: {len(raw_bars)} barras históricas ({raw_bars[0]['time'][:10]} → {raw_bars[-1]['time'][:10]})")
-
-        # 2. Simular señales SMC sobre datos históricos
-        trades = self._simulate_trades(raw_bars, symbol, min_rr, score_threshold)
-
-        # 3. Calcular métricas
-        result = self._calculate_metrics(trades, raw_bars, symbol, timeframe)
-        result.start_date = raw_bars[0]["time"][:10]
-        result.end_date   = raw_bars[-1]["time"][:10]
-
-        # 4. Guardar
-        self._save_result(result)
-        result.print_report()
-
-        return result
-
-    async def run_all(self, symbols: list = None) -> dict:
-        """Backtest de todos los activos en paralelo."""
-        if symbols is None:
-            symbols = ["BTCUSD", "ETHUSD", "XAUUSD", "EURUSD", "NAS100"]
-
-        results = {}
-        tasks = [self.run(sym) for sym in symbols]
-        completed = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for sym, res in zip(symbols, completed):
-            if isinstance(res, BacktestResult):
-                results[sym] = res
-            else:
-                logger.error(f"Backtest {sym} failed: {res}")
-
-        self._print_summary(results)
-        return results
-
-    def _simulate_trades(self, bars, symbol, min_rr, score_threshold) -> list:
-        """
-        Simula señales SMC sobre datos históricos.
-        Usa reglas simplificadas de BOS + OB para detectar setups.
-        """
-        trades = []
-        closes = [b["close"] for b in bars]
-        highs  = [b["high"]  for b in bars]
-        lows   = [b["low"]   for b in bars]
-
-        for i in range(30, len(bars) - 10):
-            window = bars[max(0, i-20):i]
-            if not window:
-                continue
-
-            swing_high = max(b["high"]  for b in window)
-            swing_low  = min(b["low"]   for b in window)
-            current    = bars[i]["close"]
-            atr_val    = self._simple_atr(bars, i)
-
-            if atr_val == 0:
-                continue
-
-            direction = None
-            score     = 0.0
-
-            # Señal BOS alcista simplificada
-            if (current > swing_high * 0.999 and
-                bars[i]["close"] > bars[i-1]["close"] and
-                bars[i]["volume"] > np.mean([b["volume"] for b in window]) * 1.2):
-                direction = "buy"
-                score = 0.70
-
-            # Señal BOS bajista simplificada
-            elif (current < swing_low * 1.001 and
-                  bars[i]["close"] < bars[i-1]["close"] and
-                  bars[i]["volume"] > np.mean([b["volume"] for b in window]) * 1.2):
-                direction = "sell"
-                score = 0.70
-
-            if direction is None or score < score_threshold:
-                continue
-
-            # Calcular niveles
-            if direction == "buy":
-                entry = current
-                sl    = current - atr_val * 1.5
-                tp    = current + atr_val * 1.5 * min_rr
-            else:
-                entry = current
-                sl    = current + atr_val * 1.5
-                tp    = current - atr_val * 1.5 * min_rr
-
-            risk = abs(entry - sl)
-            if risk == 0:
-                continue
-
-            rr = abs(tp - entry) / risk
-
-            # Simular resultado en barras futuras
-            trade = BacktestTrade(
-                symbol=symbol, direction=direction,
-                entry=entry, sl=sl, tp=tp,
-                entry_bar=i, score=score,
-                pattern="BOS_SIMULATED",
+    async def _get_session(self):
+        if self._session is None or self._session.closed:
+            connector = aiohttp.TCPConnector(ssl=False)
+            self._session = aiohttp.ClientSession(
+                headers={"User-Agent": "Mozilla/5.0"}
             )
-            trade = self._simulate_outcome(trade, bars, i)
-            trades.append(trade)
+        return self._session
 
-        return trades
+    async def fetch_symbol(self, symbol: str, start_year: int = 2003) -> list[Bar]:
+        """Descarga datos H1 históricos de Dukascopy."""
+        duka_sym   = DUKASCOPY_SYMBOLS.get(symbol, symbol)
+        cache_file = os.path.join(CACHE_DIR, f"{symbol}_H1_dukascopy.json")
 
-    def _simulate_outcome(self, trade, bars, entry_bar) -> BacktestTrade:
-        """Simula el resultado de un trade en barras futuras."""
-        for j in range(entry_bar + 1, min(entry_bar + 50, len(bars))):
-            bar = bars[j]
+        if os.path.exists(cache_file):
+            logger.info(f"Dukascopy cache hit: {symbol}")
+            with open(cache_file, "r") as f:
+                data = json.load(f)
+            return [Bar(**b) for b in data]
 
-            if trade.direction == "buy":
-                if bar["low"] <= trade.sl:
-                    trade.outcome = "loss"
-                    trade.exit_price = trade.sl
-                    trade.exit_bar = j
-                    risk = trade.entry - trade.sl
-                    trade.pnl_pct = -1.0  # -1R
-                    trade.rr_achieved = -1.0
+        logger.info(f"Descargando {symbol} desde Dukascopy ({start_year}-presente)...")
+        all_bars = []
+        now = datetime.now(timezone.utc)
+
+        for year in range(start_year, now.year + 1):
+            for month in range(0, 12):
+                if year == now.year and month >= now.month - 1:
                     break
-                elif bar["high"] >= trade.tp:
-                    trade.outcome = "win"
-                    trade.exit_price = trade.tp
-                    trade.exit_bar = j
-                    risk = trade.entry - trade.sl
-                    reward = trade.tp - trade.entry
-                    trade.pnl_pct = (reward / (trade.entry + 1e-9)) * 100
-                    trade.rr_achieved = reward / (risk + 1e-9)
-                    break
+                bars = await self._fetch_month_h1(duka_sym, symbol, year, month)
+                if bars:
+                    all_bars.extend(bars)
+                await asyncio.sleep(0.2)
 
-            else:  # sell
-                if bar["high"] >= trade.sl:
-                    trade.outcome = "loss"
-                    trade.exit_price = trade.sl
-                    trade.exit_bar = j
-                    trade.pnl_pct = -1.0
-                    trade.rr_achieved = -1.0
-                    break
-                elif bar["low"] <= trade.tp:
-                    trade.outcome = "win"
-                    trade.exit_price = trade.tp
-                    trade.exit_bar = j
-                    risk = trade.sl - trade.entry
-                    reward = trade.entry - trade.tp
-                    trade.pnl_pct = (reward / (trade.entry + 1e-9)) * 100
-                    trade.rr_achieved = reward / (risk + 1e-9)
-                    break
+            logger.info(f"  {symbol} {year}: {len([b for b in all_bars if b.time[:4] == str(year)])} barras H1")
 
-        if trade.outcome == "pending":
-            trade.outcome = "breakeven"
-            trade.exit_price = bars[min(entry_bar+20, len(bars)-1)]["close"]
-            trade.pnl_pct = 0.0
-            trade.rr_achieved = 0.0
+        if all_bars:
+            with open(cache_file, "w") as f:
+                json.dump([vars(b) for b in all_bars], f)
+            logger.info(f"Dukascopy {symbol}: {len(all_bars)} barras H1 totales")
 
-        trade.bars_held = trade.exit_bar - trade.entry_bar if trade.exit_bar > 0 else 20
-        return trade
+        return all_bars
 
-    def _calculate_metrics(self, trades, bars, symbol, timeframe) -> BacktestResult:
-        result = BacktestResult(symbol=symbol, timeframe=timeframe,
-                                start_date="", end_date="")
-        result.trades = trades
-        result.total_trades = len(trades)
-
-        if not trades:
-            return result
-
-        wins   = [t for t in trades if t.outcome == "win"]
-        losses = [t for t in trades if t.outcome == "loss"]
-        bes    = [t for t in trades if t.outcome == "breakeven"]
-
-        result.wins       = len(wins)
-        result.losses     = len(losses)
-        result.breakevens = len(bes)
-        result.win_rate   = len(wins) / len(trades)
-
-        # PnL
-        win_pnls  = [t.pnl_pct for t in wins]
-        loss_pnls = [abs(t.pnl_pct) for t in losses]
-
-        result.avg_win_pct  = float(np.mean(win_pnls))  if win_pnls  else 0.0
-        result.avg_loss_pct = float(np.mean(loss_pnls)) if loss_pnls else 0.0
-
-        gross_profit = sum(win_pnls)
-        gross_loss   = sum(loss_pnls)
-        result.profit_factor = gross_profit / (gross_loss + 1e-9)
-        result.total_pnl_pct = sum(t.pnl_pct for t in trades)
-
-        # RR promedio
-        rrs = [t.rr_achieved for t in trades if t.rr_achieved > 0]
-        result.avg_rr = float(np.mean(rrs)) if rrs else 0.0
-
-        # Barras en trade
-        bars_held = [t.bars_held for t in trades if t.bars_held > 0]
-        result.avg_bars_held = float(np.mean(bars_held)) if bars_held else 0.0
-
-        # Expectancy
-        result.expectancy = (result.win_rate * result.avg_win_pct) - ((1 - result.win_rate) * result.avg_loss_pct)
-
-        # Equity curve y Max Drawdown
-        equity = 100.0
-        equity_curve = [equity]
-        peak = equity
-        max_dd = 0.0
-
-        for t in trades:
-            equity += t.pnl_pct
-            equity_curve.append(equity)
-            if equity > peak:
-                peak = equity
-            dd = (peak - equity) / (peak + 1e-9)
-            if dd > max_dd:
-                max_dd = dd
-
-        result.equity_curve = equity_curve
-        result.max_drawdown = max_dd
-
-        # Sharpe Ratio (simplificado)
-        returns = [t.pnl_pct for t in trades]
-        if len(returns) > 1:
-            mean_r = np.mean(returns)
-            std_r  = np.std(returns)
-            result.sharpe_ratio = (mean_r / (std_r + 1e-9)) * np.sqrt(252)
-
-        return result
-
-    def _simple_atr(self, bars, idx, period=14) -> float:
-        start = max(0, idx - period)
-        window = bars[start:idx+1]
-        if len(window) < 2:
-            return 0.0
-        trs = []
-        for i in range(1, len(window)):
-            tr = max(
-                window[i]["high"] - window[i]["low"],
-                abs(window[i]["high"] - window[i-1]["close"]),
-                abs(window[i]["low"]  - window[i-1]["close"]),
-            )
-            trs.append(tr)
-        return float(np.mean(trs)) if trs else 0.0
-
-    def _save_result(self, result: BacktestResult):
+    async def _fetch_month_h1(
+        self, duka_sym: str, symbol: str, year: int, month: int
+    ) -> list[Bar]:
+        """Fetch datos H1 de un mes específico desde Dukascopy."""
+        url = f"{self.BASE_URL}/{duka_sym}/{year}/{month:02d}/BID_candles_hour_1.bi5"
         try:
-            all_results = {}
-            if os.path.exists(RESULTS_FILE):
-                with open(RESULTS_FILE, "r") as f:
-                    all_results = json.load(f)
-            all_results[f"{result.symbol}_{result.timeframe}"] = result.to_dict()
-            with open(RESULTS_FILE, "w") as f:
-                json.dump(all_results, f, indent=2)
+            sess = await self._get_session()
+            async with sess.get(url, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                if r.status != 200:
+                    return []
+                content = await r.read()
+
+            return self._parse_bi5(content, symbol, year, month)
         except Exception as e:
-            logger.error(f"Error guardando backtest: {e}")
+            logger.debug(f"Dukascopy {duka_sym} {year}-{month:02d}: {e}")
+            return []
 
-    def _print_summary(self, results: dict):
-        print(f"\n{'='*55}")
-        print(f"  RESUMEN BACKTEST — {len(results)} ACTIVOS")
-        print(f"{'='*55}")
-        for sym, res in results.items():
-            print(
-                f"  {sym:8} | WR:{res.win_rate*100:.1f}% | "
-                f"PF:{res.profit_factor:.2f} | "
-                f"DD:{res.max_drawdown*100:.1f}% | "
-                f"Trades:{res.total_trades}"
-            )
-        print(f"{'='*55}\n")
+    def _parse_bi5(
+        self, data: bytes, symbol: str, year: int, month: int
+    ) -> list[Bar]:
+        """Parse formato binario .bi5 de Dukascopy."""
+        try:
+            import lzma
+            import struct
 
-    # ─── Monte Carlo ──────────────────────────────────────────
+            decompressed = lzma.decompress(data)
+            record_size  = 24  # 4 bytes timestamp + 4*float open/high/low/close + 4 volume
+            bars = []
+            spread = SPREAD.get(symbol, 0)
 
-    def monte_carlo(
-        self,
-        result: BacktestResult,
-        simulations: int = 1000,
-        trades_per_sim: int = 100,
-    ) -> MonteCarloResult:
-        """
-        Simulación Monte Carlo para estimar distribución de retornos.
-        """
-        if not result.trades:
-            return MonteCarloResult(simulations, 0, 0, 0, 0, 0, 0, 0)
+            # Precio base según símbolo
+            price_factor = {
+                "EURUSD": 100000.0,
+                "XAUUSD": 1000.0,
+                "NAS100": 10.0,
+            }.get(symbol, 1.0)
 
-        trade_returns = [t.pnl_pct for t in result.trades]
-        sim_returns = []
-        sim_drawdowns = []
+            base_ts = datetime(year, month + 1, 1, tzinfo=timezone.utc).timestamp()
 
-        for _ in range(simulations):
-            sample = np.random.choice(trade_returns, size=trades_per_sim, replace=True)
-            total_return = float(np.sum(sample))
-            sim_returns.append(total_return)
-
-            # Max drawdown de esta simulación
-            equity = 100.0
-            peak   = 100.0
-            max_dd = 0.0
-            for r in sample:
-                equity += r
-                if equity > peak: peak = equity
-                dd = (peak - equity) / (peak + 1e-9)
-                if dd > max_dd: max_dd = dd
-            sim_drawdowns.append(max_dd)
-
-        arr = np.array(sim_returns)
-        return MonteCarloResult(
-            simulations=simulations,
-            median_return=float(np.median(arr)),
-            percentile_5=float(np.percentile(arr, 5)),
-            percentile_25=float(np.percentile(arr, 25)),
-            percentile_75=float(np.percentile(arr, 75)),
-            percentile_95=float(np.percentile(arr, 95)),
-            prob_positive=float(np.mean(arr > 0)),
-            max_drawdown_median=float(np.median(sim_drawdowns)),
-        )
-
-    async def close(self):
-        await self.fetcher.close()
+            for i in range(0, len(decompressed) - record_size + 1, record_size):
+                chunk = decompressed[i:i + record_size]
+                if len(chunk) < record_size:
+                    break
+                try:
+                    ms, o, h, l, c, v = struct.unpack(">IIIIIf", chunk)
+                    ts = base_ts + ms / 1000
+                    bars.append(Bar(
+                        time=datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
+                        open=o  / price_factor,
+                        high=h  / price_factor,
+                        low=l   / price_factor,
+                        close=c / price_factor,
+                        volume=float(v),
+                        spread=spread,
+                    ))
+                except struct.error:
+                    continue
+            return bars
+        except Exception as e:
+            logger.debug(f"Parse bi5 {symbol}: {e}")
+            return []
