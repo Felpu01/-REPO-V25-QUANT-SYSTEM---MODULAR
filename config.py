@@ -9,15 +9,15 @@ MT5_ACCOUNT_ID    = ""   # Variable de entorno: MT5_ACCOUNT_ID
 ANTHROPIC_API_KEY = ""   # Variable de entorno: ANTHROPIC_API_KEY
 
 # ─── ACTIVOS ────────────────────────────────────────────────
-SYMBOLS = ["BTCUSD", "ETHUSD", "XAUUSD", "EURUSD", "NAS100"]
+SYMBOLS = ["BTCUSDm", "ETHUSDm", "XAUUSDm", "EURUSDm", "USTECm"]
 
 # Configuración por activo: pip_size, atr_min, atr_max, spread_max
 SYMBOL_CONFIG = {
-    "BTCUSD": {"pip": 1.0,    "atr_min": 50,   "atr_max": 3000, "spread_max": 30,  "digits": 2},
-    "ETHUSD": {"pip": 0.1,    "atr_min": 5,    "atr_max": 300,  "spread_max": 5,   "digits": 2},
-    "XAUUSD": {"pip": 0.01,   "atr_min": 3,    "atr_max": 80,   "spread_max": 0.5, "digits": 2},
-    "EURUSD": {"pip": 0.0001, "atr_min": 0.003,"atr_max": 0.04, "spread_max": 0.0002,"digits": 5},
-    "NAS100": {"pip": 1.0,    "atr_min": 20,   "atr_max": 600,  "spread_max": 5,   "digits": 2},
+    "BTCUSDm": {"pip": 1.0,    "atr_min": 50,   "atr_max": 3000, "spread_max": 30,  "digits": 2},
+    "ETHUSDm": {"pip": 0.1,    "atr_min": 5,    "atr_max": 300,  "spread_max": 5,   "digits": 2},
+    "XAUUSDm": {"pip": 0.01,   "atr_min": 3,    "atr_max": 80,   "spread_max": 0.5, "digits": 2},
+    "EURUSDm": {"pip": 0.0001, "atr_min": 0.003,"atr_max": 0.04, "spread_max": 0.0002,"digits": 5},
+    "USTECm": {"pip": 1.0,    "atr_min": 20,   "atr_max": 600,  "spread_max": 5,   "digits": 2},
 }
 
 # ─── TIMEFRAMES ─────────────────────────────────────────────
