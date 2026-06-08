@@ -1,0 +1,129 @@
+{
+  "saved_at": "2026-06-08T10:20:51.463746+00:00",
+  "symbol": "ETHUSDm",
+  "timeframe": "H1",
+  "source": "Binance Vision → H1",
+  "start_date": "2017-08-17",
+  "end_date": "2024-12-31",
+  "total_trades": 3880,
+  "wins": 1827,
+  "losses": 2049,
+  "breakevens": 4,
+  "win_rate": 0.4708762886597938,
+  "profit_factor": 0.7496332441914918,
+  "expectancy": -0.13324780479998477,
+  "max_drawdown": 43.333303770866,
+  "sharpe_ratio": -1.9613718194315626,
+  "total_r": -513.0014826241496,
+  "avg_win_r": 0.8407216843289936,
+  "avg_loss_r": 0.9999999999478871,
+  "avg_rr": 0.9249222180501272,
+  "avg_bars_held": 7.634020618556701,
+  "avg_slippage": 0.4999270455076393,
+  "yearly_stats": {
+    "2022": {
+      "trades": 367,
+      "wins": 168,
+      "total_r": -42.34,
+      "wr": 45.8
+    },
+    "2023": {
+      "trades": 1647,
+      "wins": 731,
+      "total_r": -230.97,
+      "wr": 44.4
+    },
+    "2024": {
+      "trades": 1866,
+      "wins": 928,
+      "total_r": -239.69,
+      "wr": 49.7
+    }
+  },
+  "session_stats": {
+    "ny_overlap": {
+      "trades": 946,
+      "wins": 448,
+      "total_r": -98.24,
+      "wr": 47.4
+    },
+    "ny": {
+      "trades": 821,
+      "wins": 381,
+      "total_r": -91.76,
+      "wr": 46.4
+    },
+    "close": {
+      "trades": 320,
+      "wins": 138,
+      "total_r": -76.47,
+      "wr": 43.1
+    },
+    "asia": {
+      "trades": 1046,
+      "wins": 518,
+      "total_r": -123.15,
+      "wr": 49.5
+    },
+    "london": {
+      "trades": 435,
+      "wins": 209,
+      "total_r": -54.64,
+      "wr": 48.0
+    },
+    "london_open": {
+      "trades": 312,
+      "wins": 133,
+      "total_r": -68.75,
+      "wr": 42.6
+    }
+  },
+  "pattern_stats": {
+    "BOS_BEAR": {
+      "trades": 578,
+      "wins": 263,
+      "total_r": -56.56,
+      "wr": 45.5
+    },
+    "FVG_BEAR": {
+      "trades": 781,
+      "wins": 375,
+      "total_r": -108.49,
+      "wr": 48.0
+    },
+    "FVG_BULL": {
+      "trades": 824,
+      "wins": 400,
+      "total_r": -108.46,
+      "wr": 48.5
+    },
+    "OB_BULL": {
+      "trades": 538,
+      "wins": 266,
+      "total_r": -44.26,
+      "wr": 49.4
+    },
+    "BOS_BULL": {
+      "trades": 677,
+      "wins": 313,
+      "total_r": -88.51,
+      "wr": 46.2
+    },
+    "OB_BEAR": {
+      "trades": 482,
+      "wins": 210,
+      "total_r": -106.73,
+      "wr": 43.6
+    }
+  },
+  "best_hours": [
+    4,
+    5,
+    11,
+    17,
+    15,
+    3,
+    13,
+    9
+  ]
+}
