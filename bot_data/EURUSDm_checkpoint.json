@@ -1,0 +1,134 @@
+{
+  "saved_at": "2026-06-13T16:46:24.428546+00:00",
+  "symbol": "EURUSDm",
+  "timeframe": "H1",
+  "source": "Dukascopy H1",
+  "start_date": "2003-05-01",
+  "end_date": "2026-05-01",
+  "total_trades": 42004,
+  "wins": 11720,
+  "losses": 29890,
+  "breakevens": 394,
+  "win_rate": 0.27902104561470337,
+  "profit_factor": 0.44560681394062074,
+  "expectancy": -0.40388515156984833,
+  "max_drawdown": 16571.792380895928,
+  "sharpe_ratio": -4.976276923030205,
+  "total_r": -16570.792380895946,
+  "avg_win_r": 1.136448091557892,
+  "avg_loss_r": 0.9999987960506671,
+  "avg_rr": 1.038431522398773,
+  "avg_bars_held": 14.00754690029521,
+  "avg_slippage": 4.991603556859848e-05,
+  "yearly_stats": {
+    "2019": {
+      "trades": 3053,
+      "wins": 595,
+      "total_r": -1850.55,
+      "wr": 19.5
+    },
+    "2020": {
+      "trades": 6070,
+      "wins": 1898,
+      "total_r": -2091.67,
+      "wr": 31.3
+    },
+    "2021": {
+      "trades": 6077,
+      "wins": 1563,
+      "total_r": -2854.46,
+      "wr": 25.7
+    },
+    "2022": {
+      "trades": 6185,
+      "wins": 2005,
+      "total_r": -1717.72,
+      "wr": 32.4
+    },
+    "2023": {
+      "trades": 6004,
+      "wins": 1726,
+      "total_r": -2293.54,
+      "wr": 28.7
+    },
+    "2024": {
+      "trades": 6072,
+      "wins": 1562,
+      "total_r": -2510.54,
+      "wr": 25.7
+    },
+    "2025": {
+      "trades": 6083,
+      "wins": 1790,
+      "total_r": -2154.32,
+      "wr": 29.4
+    },
+    "2026": {
+      "trades": 2460,
+      "wins": 581,
+      "total_r": -1097.99,
+      "wr": 23.6
+    }
+  },
+  "session_stats": {
+    "asia": {
+      "trades": 42004,
+      "wins": 11720,
+      "total_r": -16570.79,
+      "wr": 27.9
+    }
+  },
+  "pattern_stats": {
+    "BOS_BULL": {
+      "trades": 5124,
+      "wins": 820,
+      "total_r": -3061.21,
+      "wr": 16.0
+    },
+    "INDUCCION_BULL": {
+      "trades": 29865,
+      "wins": 7122,
+      "total_r": -15820.17,
+      "wr": 23.8
+    },
+    "FVG_BEAR": {
+      "trades": 3200,
+      "wins": 2575,
+      "total_r": 2840.21,
+      "wr": 80.5
+    },
+    "FVG_BULL": {
+      "trades": 921,
+      "wins": 242,
+      "total_r": -446.05,
+      "wr": 26.3
+    },
+    "DISPLACEMENT_BULL": {
+      "trades": 860,
+      "wins": 203,
+      "total_r": -450.34,
+      "wr": 23.6
+    },
+    "INDUCCION_BEAR": {
+      "trades": 1947,
+      "wins": 692,
+      "total_r": 79.75,
+      "wr": 35.5
+    },
+    "BOS_BEAR": {
+      "trades": 85,
+      "wins": 66,
+      "total_r": 289.02,
+      "wr": 77.6
+    },
+    "OB_BEAR": {
+      "trades": 2,
+      "wins": 0,
+      "total_r": -2.0,
+      "wr": 0.0
+    }
+  },
+  "best_hours": [
+    0
+  ]
+}
