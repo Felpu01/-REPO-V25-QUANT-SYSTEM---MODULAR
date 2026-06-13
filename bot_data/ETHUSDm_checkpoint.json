@@ -1,0 +1,165 @@
+{
+  "saved_at": "2026-06-13T16:39:04.578920+00:00",
+  "symbol": "ETHUSDm",
+  "timeframe": "H1",
+  "source": "Binance Vision → H1",
+  "start_date": "2017-08-17",
+  "end_date": "2024-12-31",
+  "total_trades": 18528,
+  "wins": 8332,
+  "losses": 10171,
+  "breakevens": 25,
+  "win_rate": 0.44969775474956825,
+  "profit_factor": 0.640358101811091,
+  "expectancy": -0.19877578509639415,
+  "max_drawdown": 3658.9177462674465,
+  "sharpe_ratio": -3.1290779027648545,
+  "total_r": -3657.917746267433,
+  "avg_win_r": 0.7816949415680486,
+  "avg_loss_r": 0.9999999999422294,
+  "avg_rr": 0.9016960629388422,
+  "avg_bars_held": 8.10513816925734,
+  "avg_slippage": 0.49801249104701883,
+  "yearly_stats": {
+    "2022": {
+      "trades": 1717,
+      "wins": 730,
+      "total_r": -349.12,
+      "wr": 42.5
+    },
+    "2023": {
+      "trades": 8420,
+      "wins": 3580,
+      "total_r": -1803.46,
+      "wr": 42.5
+    },
+    "2024": {
+      "trades": 8391,
+      "wins": 4022,
+      "total_r": -1505.33,
+      "wr": 47.9
+    }
+  },
+  "session_stats": {
+    "ny_overlap": {
+      "trades": 3870,
+      "wins": 1785,
+      "total_r": -619.89,
+      "wr": 46.1
+    },
+    "ny": {
+      "trades": 3789,
+      "wins": 1640,
+      "total_r": -827.4,
+      "wr": 43.3
+    },
+    "close": {
+      "trades": 1557,
+      "wins": 684,
+      "total_r": -331.56,
+      "wr": 43.9
+    },
+    "asia": {
+      "trades": 5419,
+      "wins": 2488,
+      "total_r": -1035.59,
+      "wr": 45.9
+    },
+    "london_open": {
+      "trades": 1568,
+      "wins": 675,
+      "total_r": -378.2,
+      "wr": 43.0
+    },
+    "london": {
+      "trades": 2325,
+      "wins": 1060,
+      "total_r": -465.27,
+      "wr": 45.6
+    }
+  },
+  "pattern_stats": {
+    "DISPLACEMENT_BEAR": {
+      "trades": 292,
+      "wins": 131,
+      "total_r": -61.57,
+      "wr": 44.9
+    },
+    "BOS_BEAR": {
+      "trades": 578,
+      "wins": 263,
+      "total_r": -53.94,
+      "wr": 45.5
+    },
+    "FVG_BEAR": {
+      "trades": 781,
+      "wins": 373,
+      "total_r": -116.05,
+      "wr": 47.8
+    },
+    "INDUCCION_BULL": {
+      "trades": 7055,
+      "wins": 3107,
+      "total_r": -1537.38,
+      "wr": 44.0
+    },
+    "INDUCCION_BEAR": {
+      "trades": 6839,
+      "wins": 3057,
+      "total_r": -1447.7,
+      "wr": 44.7
+    },
+    "DISPLACEMENT_BULL": {
+      "trades": 250,
+      "wins": 124,
+      "total_r": -30.05,
+      "wr": 49.6
+    },
+    "FVG_BULL": {
+      "trades": 824,
+      "wins": 401,
+      "total_r": -108.11,
+      "wr": 48.7
+    },
+    "OB_BULL": {
+      "trades": 538,
+      "wins": 266,
+      "total_r": -42.87,
+      "wr": 49.4
+    },
+    "BOS_BULL": {
+      "trades": 677,
+      "wins": 313,
+      "total_r": -89.65,
+      "wr": 46.2
+    },
+    "JUDAS_SWING_BEAR": {
+      "trades": 124,
+      "wins": 56,
+      "total_r": -28.55,
+      "wr": 45.2
+    },
+    "OB_BEAR": {
+      "trades": 482,
+      "wins": 209,
+      "total_r": -111.41,
+      "wr": 43.4
+    },
+    "JUDAS_SWING_BULL": {
+      "trades": 88,
+      "wins": 32,
+      "total_r": -30.64,
+      "wr": 36.4
+    }
+  },
+  "best_hours": [
+    4,
+    9,
+    15,
+    2,
+    13,
+    3,
+    5,
+    11
+  ]
+}
