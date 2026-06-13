@@ -16,6 +16,9 @@ from datetime import datetime, timezone
 import numpy as np
 
 from backtesting.data_fetcher import Bar, SPREAD_REAL, SYMBOL_START_YEAR
+from core.displacement import displacement_score
+from core.judas_swing  import analyze_judas_swing
+from core.induccion    import analyze_induccion
 
 logger = logging.getLogger("Simulator")
 
@@ -354,6 +357,33 @@ class Simulator:
                 and (bars[i-2].low - bar.high) / (current + 1e-9) > 0.001
             ):
                 direction, score, pattern = "sell", 0.66, "FVG_BEAR"
+
+            # ── Displacement Institucional ────────────────────
+            elif i >= 10:
+                d_score, d_valid = displacement_score(bars, i, atr_val)
+                if d_valid:
+                    if bar.close > bar.open:
+                        direction, score, pattern = "buy",  max(0.67, d_score * 0.9), "DISPLACEMENT_BULL"
+                    else:
+                        direction, score, pattern = "sell", max(0.67, d_score * 0.9), "DISPLACEMENT_BEAR"
+
+            # ── Judas Swing ───────────────────────────────────
+            if direction is None and i >= 20:
+                js = analyze_judas_swing(bars, i, atr_val)
+                if js.detected:
+                    js_dir = js.real_direction
+                    direction = js_dir
+                    score     = max(0.68, js.score * 0.95)
+                    pattern   = f"JUDAS_SWING_{'BULL' if js_dir == 'buy' else 'BEAR'}"
+
+            # ── Inducción ─────────────────────────────────────
+            if direction is None and i >= 30:
+                ind = analyze_induccion(bars, i, atr_val)
+                if ind.detected:
+                    ind_dir = ind.real_direction
+                    direction = ind_dir
+                    score     = max(0.67, ind.score * 0.9)
+                    pattern   = f"INDUCCION_{'BULL' if ind_dir == 'buy' else 'BEAR'}"
 
             if direction is None or score < score_threshold:
                 continue
