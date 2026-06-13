@@ -1,0 +1,152 @@
+{
+  "saved_at": "2026-06-13T23:42:07.363260+00:00",
+  "symbol": "EURUSDm",
+  "timeframe": "H1",
+  "source": "Dukascopy H1",
+  "start_date": "2003-05-01",
+  "end_date": "2026-05-01",
+  "total_trades": 6824,
+  "wins": 1656,
+  "losses": 5140,
+  "breakevens": 28,
+  "win_rate": 0.24267291910902697,
+  "profit_factor": 0.4489963500900841,
+  "expectancy": -0.4191313715443146,
+  "max_drawdown": 2833.152540908441,
+  "sharpe_ratio": -4.02532622042488,
+  "total_r": -2832.1525409084525,
+  "avg_win_r": 1.3936208763738478,
+  "avg_loss_r": 0.9999978039267599,
+  "avg_rr": 1.0959130199321125,
+  "avg_bars_held": 8.05407385697538,
+  "avg_slippage": 5.033807078589855e-05,
+  "yearly_stats": {
+    "2019": {
+      "trades": 514,
+      "wins": 106,
+      "total_r": -297.53,
+      "wr": 20.6
+    },
+    "2020": {
+      "trades": 1077,
+      "wins": 272,
+      "total_r": -419.41,
+      "wr": 25.3
+    },
+    "2021": {
+      "trades": 903,
+      "wins": 192,
+      "total_r": -460.14,
+      "wr": 21.3
+    },
+    "2022": {
+      "trades": 1058,
+      "wins": 293,
+      "total_r": -344.14,
+      "wr": 27.7
+    },
+    "2023": {
+      "trades": 1012,
+      "wins": 244,
+      "total_r": -399.95,
+      "wr": 24.1
+    },
+    "2024": {
+      "trades": 913,
+      "wins": 203,
+      "total_r": -387.58,
+      "wr": 22.2
+    },
+    "2025": {
+      "trades": 991,
+      "wins": 248,
+      "total_r": -437.26,
+      "wr": 25.0
+    },
+    "2026": {
+      "trades": 356,
+      "wins": 98,
+      "total_r": -86.14,
+      "wr": 27.5
+    }
+  },
+  "session_stats": {
+    "asia": {
+      "trades": 6824,
+      "wins": 1656,
+      "total_r": -2832.15,
+      "wr": 24.3
+    }
+  },
+  "pattern_stats": {
+    "BOS_BULL_DISP_IND": {
+      "trades": 1195,
+      "wins": 223,
+      "total_r": -458.73,
+      "wr": 18.7
+    },
+    "BOS_BULL_IND": {
+      "trades": 1778,
+      "wins": 240,
+      "total_r": -1278.51,
+      "wr": 13.5
+    },
+    "FVG_BEAR": {
+      "trades": 766,
+      "wins": 587,
+      "total_r": 607.34,
+      "wr": 76.6
+    },
+    "FVG_BULL_IND": {
+      "trades": 485,
+      "wins": 147,
+      "total_r": -193.26,
+      "wr": 30.3
+    },
+    "BOS_BULL": {
+      "trades": 1463,
+      "wins": 236,
+      "total_r": -992.65,
+      "wr": 16.1
+    },
+    "FVG_BULL": {
+      "trades": 411,
+      "wins": 93,
+      "total_r": -231.72,
+      "wr": 22.6
+    },
+    "BOS_BULL_DISP": {
+      "trades": 687,
+      "wins": 112,
+      "total_r": -350.87,
+      "wr": 16.3
+    },
+    "BOS_BEAR": {
+      "trades": 19,
+      "wins": 16,
+      "total_r": 83.03,
+      "wr": 84.2
+    },
+    "FVG_BULL_DISP_IND": {
+      "trades": 9,
+      "wins": 1,
+      "total_r": -7.74,
+      "wr": 11.1
+    },
+    "FVG_BEAR_IND": {
+      "trades": 1,
+      "wins": 0,
+      "total_r": -1.0,
+      "wr": 0.0
+    },
+    "FVG_BULL_DISP": {
+      "trades": 10,
+      "wins": 1,
+      "total_r": -8.05,
+      "wr": 10.0
+    }
+  },
+  "best_hours": [
+    0
+  ]
+}
