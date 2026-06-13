@@ -1,0 +1,954 @@
+{
+  "generated_at": "2026-06-13T23:49:30.898553+00:00",
+  "symbols": {
+    "BTCUSDm": {
+      "win_rate": 48.3,
+      "profit_factor": 0.79,
+      "best_pattern": "OB_BEAR_JS_IND",
+      "best_session": "london_open",
+      "best_hours": [
+        3,
+        16,
+        17,
+        23,
+        8
+      ],
+      "pattern_stats": {
+        "BOS_BEAR": {
+          "trades": 169,
+          "wins": 79,
+          "total_r": -18.59,
+          "wr": 46.7
+        },
+        "BOS_BEAR_DISP": {
+          "trades": 103,
+          "wins": 44,
+          "total_r": -22.93,
+          "wr": 42.7
+        },
+        "FVG_BEAR": {
+          "trades": 162,
+          "wins": 88,
+          "total_r": -11.64,
+          "wr": 54.3
+        },
+        "BOS_BEAR_IND": {
+          "trades": 97,
+          "wins": 52,
+          "total_r": 0.33,
+          "wr": 53.6
+        },
+        "OB_BULL_IND": {
+          "trades": 239,
+          "wins": 110,
+          "total_r": -38.33,
+          "wr": 46.0
+        },
+        "BOS_BULL_DISP_IND": {
+          "trades": 188,
+          "wins": 100,
+          "total_r": -4.23,
+          "wr": 53.2
+        },
+        "FVG_BEAR_IND": {
+          "trades": 121,
+          "wins": 52,
+          "total_r": -32.13,
+          "wr": 43.0
+        },
+        "OB_BEAR_IND": {
+          "trades": 232,
+          "wins": 99,
+          "total_r": -56.39,
+          "wr": 42.7
+        },
+        "FVG_BULL": {
+          "trades": 201,
+          "wins": 103,
+          "total_r": -4.03,
+          "wr": 51.2
+        },
+        "OB_BULL": {
+          "trades": 62,
+          "wins": 28,
+          "total_r": -12.23,
+          "wr": 45.2
+        },
+        "BOS_BULL_DISP": {
+          "trades": 154,
+          "wins": 76,
+          "total_r": -8.33,
+          "wr": 49.4
+        },
+        "BOS_BULL": {
+          "trades": 224,
+          "wins": 115,
+          "total_r": -2.69,
+          "wr": 51.3
+        },
+        "BOS_BULL_IND": {
+          "trades": 112,
+          "wins": 56,
+          "total_r": 0.49,
+          "wr": 50.0
+        },
+        "FVG_BULL_IND": {
+          "trades": 135,
+          "wins": 66,
+          "total_r": -19.26,
+          "wr": 48.9
+        },
+        "OB_BEAR": {
+          "trades": 58,
+          "wins": 28,
+          "total_r": -9.81,
+          "wr": 48.3
+        },
+        "BOS_BEAR_DISP_IND": {
+          "trades": 136,
+          "wins": 66,
+          "total_r": -8.59,
+          "wr": 48.5
+        },
+        "FVG_BEAR_DISP": {
+          "trades": 4,
+          "wins": 2,
+          "total_r": -1.51,
+          "wr": 50.0
+        },
+        "FVG_BULL_DISP_IND": {
+          "trades": 7,
+          "wins": 1,
+          "total_r": -5.76,
+          "wr": 14.3
+        },
+        "OB_BEAR_DISP_IND": {
+          "trades": 21,
+          "wins": 9,
+          "total_r": -3.28,
+          "wr": 42.9
+        },
+        "FVG_BULL_DISP": {
+          "trades": 3,
+          "wins": 2,
+          "total_r": -0.3,
+          "wr": 66.7
+        },
+        "OB_BEAR_JS_IND": {
+          "trades": 1,
+          "wins": 1,
+          "total_r": 0.57,
+          "wr": 100.0
+        },
+        "OB_BEAR_DISP": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        },
+        "FVG_BEAR_DISP_IND": {
+          "trades": 10,
+          "wins": 6,
+          "total_r": -0.71,
+          "wr": 60.0
+        },
+        "OB_BULL_DISP": {
+          "trades": 3,
+          "wins": 0,
+          "total_r": -3.0,
+          "wr": 0.0
+        },
+        "OB_BULL_DISP_IND": {
+          "trades": 8,
+          "wins": 3,
+          "total_r": -3.3,
+          "wr": 37.5
+        },
+        "BOS_BULL_JS_IND": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        },
+        "BOS_BEAR_DISP_JS_IND": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        }
+      },
+      "session_stats": {
+        "ny_overlap": {
+          "trades": 665,
+          "wins": 332,
+          "total_r": -57.52,
+          "wr": 49.9
+        },
+        "ny": {
+          "trades": 586,
+          "wins": 271,
+          "total_r": -61.77,
+          "wr": 46.2
+        },
+        "asia": {
+          "trades": 606,
+          "wins": 288,
+          "total_r": -90.15,
+          "wr": 47.5
+        },
+        "london": {
+          "trades": 256,
+          "wins": 125,
+          "total_r": -23.12,
+          "wr": 48.8
+        },
+        "close": {
+          "trades": 185,
+          "wins": 91,
+          "total_r": -16.64,
+          "wr": 49.2
+        },
+        "london_open": {
+          "trades": 155,
+          "wins": 79,
+          "total_r": -19.45,
+          "wr": 51.0
+        }
+      },
+      "yearly_stats": {
+        "2022": {
+          "trades": 188,
+          "wins": 82,
+          "total_r": -29.73,
+          "wr": 43.6
+        },
+        "2023": {
+          "trades": 1056,
+          "wins": 496,
+          "total_r": -96.14,
+          "wr": 47.0
+        },
+        "2024": {
+          "trades": 1209,
+          "wins": 608,
+          "total_r": -142.78,
+          "wr": 50.3
+        }
+      },
+      "total_trades": 2453,
+      "source": "github_checkpoint"
+    },
+    "ETHUSDm": {
+      "win_rate": 46.8,
+      "profit_factor": 0.77,
+      "best_pattern": "OB_BULL_DISP_IND",
+      "best_session": "asia",
+      "best_hours": [
+        4,
+        5,
+        3,
+        9,
+        15
+      ],
+      "pattern_stats": {
+        "BOS_BEAR_DISP": {
+          "trades": 107,
+          "wins": 56,
+          "total_r": 4.04,
+          "wr": 52.3
+        },
+        "FVG_BEAR": {
+          "trades": 194,
+          "wins": 107,
+          "total_r": 2.65,
+          "wr": 55.2
+        },
+        "BOS_BEAR": {
+          "trades": 183,
+          "wins": 76,
+          "total_r": -32.4,
+          "wr": 41.5
+        },
+        "BOS_BEAR_IND": {
+          "trades": 119,
+          "wins": 52,
+          "total_r": -13.61,
+          "wr": 43.7
+        },
+        "OB_BULL_IND": {
+          "trades": 240,
+          "wins": 106,
+          "total_r": -44.84,
+          "wr": 44.2
+        },
+        "FVG_BEAR_IND": {
+          "trades": 144,
+          "wins": 67,
+          "total_r": -28.07,
+          "wr": 46.5
+        },
+        "BOS_BULL_DISP_IND": {
+          "trades": 200,
+          "wins": 91,
+          "total_r": -34.73,
+          "wr": 45.5
+        },
+        "OB_BULL": {
+          "trades": 76,
+          "wins": 42,
+          "total_r": 5.01,
+          "wr": 55.3
+        },
+        "BOS_BULL": {
+          "trades": 203,
+          "wins": 96,
+          "total_r": -26.73,
+          "wr": 47.3
+        },
+        "OB_BEAR_IND": {
+          "trades": 218,
+          "wins": 82,
+          "total_r": -68.21,
+          "wr": 37.6
+        },
+        "BOS_BULL_DISP": {
+          "trades": 131,
+          "wins": 65,
+          "total_r": -6.88,
+          "wr": 49.6
+        },
+        "FVG_BULL": {
+          "trades": 199,
+          "wins": 96,
+          "total_r": -27.28,
+          "wr": 48.2
+        },
+        "FVG_BULL_IND": {
+          "trades": 187,
+          "wins": 91,
+          "total_r": -20.74,
+          "wr": 48.7
+        },
+        "BOS_BULL_IND": {
+          "trades": 123,
+          "wins": 56,
+          "total_r": -10.05,
+          "wr": 45.5
+        },
+        "OB_BEAR": {
+          "trades": 58,
+          "wins": 30,
+          "total_r": -5.52,
+          "wr": 51.7
+        },
+        "OB_BULL_DISP_IND": {
+          "trades": 17,
+          "wins": 11,
+          "total_r": 2.52,
+          "wr": 64.7
+        },
+        "BOS_BEAR_DISP_IND": {
+          "trades": 146,
+          "wins": 73,
+          "total_r": -0.73,
+          "wr": 50.0
+        },
+        "OB_BEAR_DISP_IND": {
+          "trades": 22,
+          "wins": 8,
+          "total_r": -6.26,
+          "wr": 36.4
+        },
+        "FVG_BEAR_DISP_IND": {
+          "trades": 13,
+          "wins": 5,
+          "total_r": -2.75,
+          "wr": 38.5
+        },
+        "OB_BULL_JS_IND": {
+          "trades": 2,
+          "wins": 1,
+          "total_r": 1.25,
+          "wr": 50.0
+        },
+        "FVG_BULL_DISP_IND": {
+          "trades": 10,
+          "wins": 4,
+          "total_r": -3.96,
+          "wr": 40.0
+        },
+        "FVG_BEAR_DISP": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        },
+        "FVG_BULL_DISP": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        },
+        "OB_BEAR_DISP": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        }
+      },
+      "session_stats": {
+        "ny_overlap": {
+          "trades": 671,
+          "wins": 313,
+          "total_r": -68.61,
+          "wr": 46.6
+        },
+        "ny": {
+          "trades": 570,
+          "wins": 270,
+          "total_r": -44.96,
+          "wr": 47.4
+        },
+        "close": {
+          "trades": 198,
+          "wins": 85,
+          "total_r": -47.22,
+          "wr": 42.9
+        },
+        "asia": {
+          "trades": 683,
+          "wins": 334,
+          "total_r": -82.35,
+          "wr": 48.9
+        },
+        "london": {
+          "trades": 276,
+          "wins": 131,
+          "total_r": -28.61,
+          "wr": 47.5
+        },
+        "london_open": {
+          "trades": 197,
+          "wins": 82,
+          "total_r": -48.56,
+          "wr": 41.6
+        }
+      },
+      "yearly_stats": {
+        "2022": {
+          "trades": 230,
+          "wins": 109,
+          "total_r": -11.67,
+          "wr": 47.4
+        },
+        "2023": {
+          "trades": 1111,
+          "wins": 486,
+          "total_r": -159.05,
+          "wr": 43.7
+        },
+        "2024": {
+          "trades": 1254,
+          "wins": 620,
+          "total_r": -149.58,
+          "wr": 49.4
+        }
+      },
+      "total_trades": 2595,
+      "source": "github_checkpoint"
+    },
+    "XAUUSDm": {
+      "win_rate": 32.5,
+      "profit_factor": 0.59,
+      "best_pattern": "BOS_BEAR",
+      "best_session": "asia",
+      "best_hours": [
+        0
+      ],
+      "pattern_stats": {
+        "BOS_BULL": {
+          "trades": 1460,
+          "wins": 341,
+          "total_r": -765.26,
+          "wr": 23.4
+        },
+        "BOS_BULL_IND": {
+          "trades": 1721,
+          "wins": 332,
+          "total_r": -998.13,
+          "wr": 19.3
+        },
+        "FVG_BULL_IND": {
+          "trades": 1464,
+          "wins": 484,
+          "total_r": -525.79,
+          "wr": 33.1
+        },
+        "FVG_BEAR": {
+          "trades": 984,
+          "wins": 746,
+          "total_r": 884.93,
+          "wr": 75.8
+        },
+        "BOS_BULL_DISP": {
+          "trades": 591,
+          "wins": 139,
+          "total_r": -264.71,
+          "wr": 23.5
+        },
+        "BOS_BULL_DISP_IND": {
+          "trades": 930,
+          "wins": 242,
+          "total_r": -377.06,
+          "wr": 26.0
+        },
+        "FVG_BULL": {
+          "trades": 1226,
+          "wins": 410,
+          "total_r": -415.3,
+          "wr": 33.4
+        },
+        "FVG_BULL_DISP_IND": {
+          "trades": 25,
+          "wins": 8,
+          "total_r": -8.77,
+          "wr": 32.0
+        },
+        "BOS_BEAR": {
+          "trades": 29,
+          "wins": 29,
+          "total_r": 156.75,
+          "wr": 100.0
+        },
+        "FVG_BULL_DISP": {
+          "trades": 40,
+          "wins": 15,
+          "total_r": -5.55,
+          "wr": 37.5
+        },
+        "FVG_BEAR_IND": {
+          "trades": 15,
+          "wins": 10,
+          "total_r": 5.46,
+          "wr": 66.7
+        },
+        "OB_BEAR": {
+          "trades": 1,
+          "wins": 1,
+          "total_r": 0.67,
+          "wr": 100.0
+        }
+      },
+      "session_stats": {
+        "asia": {
+          "trades": 8486,
+          "wins": 2757,
+          "total_r": -2312.76,
+          "wr": 32.5
+        }
+      },
+      "yearly_stats": {
+        "2019": {
+          "trades": 917,
+          "wins": 276,
+          "total_r": -315.14,
+          "wr": 30.1
+        },
+        "2020": {
+          "trades": 934,
+          "wins": 284,
+          "total_r": -307.13,
+          "wr": 30.4
+        },
+        "2021": {
+          "trades": 795,
+          "wins": 220,
+          "total_r": -280.75,
+          "wr": 27.7
+        },
+        "2022": {
+          "trades": 1213,
+          "wins": 371,
+          "total_r": -386.57,
+          "wr": 30.6
+        },
+        "2023": {
+          "trades": 1130,
+          "wins": 343,
+          "total_r": -331.12,
+          "wr": 30.4
+        },
+        "2024": {
+          "trades": 1315,
+          "wins": 441,
+          "total_r": -312.94,
+          "wr": 33.5
+        },
+        "2025": {
+          "trades": 1538,
+          "wins": 572,
+          "total_r": -298.94,
+          "wr": 37.2
+        },
+        "2026": {
+          "trades": 644,
+          "wins": 250,
+          "total_r": -80.17,
+          "wr": 38.8
+        }
+      },
+      "total_trades": 8486,
+      "source": "github_checkpoint"
+    },
+    "EURUSDm": {
+      "win_rate": 24.3,
+      "profit_factor": 0.45,
+      "best_pattern": "BOS_BEAR",
+      "best_session": "asia",
+      "best_hours": [
+        0
+      ],
+      "pattern_stats": {
+        "BOS_BULL_DISP_IND": {
+          "trades": 1195,
+          "wins": 223,
+          "total_r": -458.73,
+          "wr": 18.7
+        },
+        "BOS_BULL_IND": {
+          "trades": 1778,
+          "wins": 240,
+          "total_r": -1278.51,
+          "wr": 13.5
+        },
+        "FVG_BEAR": {
+          "trades": 766,
+          "wins": 587,
+          "total_r": 607.34,
+          "wr": 76.6
+        },
+        "FVG_BULL_IND": {
+          "trades": 485,
+          "wins": 147,
+          "total_r": -193.26,
+          "wr": 30.3
+        },
+        "BOS_BULL": {
+          "trades": 1463,
+          "wins": 236,
+          "total_r": -992.65,
+          "wr": 16.1
+        },
+        "FVG_BULL": {
+          "trades": 411,
+          "wins": 93,
+          "total_r": -231.72,
+          "wr": 22.6
+        },
+        "BOS_BULL_DISP": {
+          "trades": 687,
+          "wins": 112,
+          "total_r": -350.87,
+          "wr": 16.3
+        },
+        "BOS_BEAR": {
+          "trades": 19,
+          "wins": 16,
+          "total_r": 83.03,
+          "wr": 84.2
+        },
+        "FVG_BULL_DISP_IND": {
+          "trades": 9,
+          "wins": 1,
+          "total_r": -7.74,
+          "wr": 11.1
+        },
+        "FVG_BEAR_IND": {
+          "trades": 1,
+          "wins": 0,
+          "total_r": -1.0,
+          "wr": 0.0
+        },
+        "FVG_BULL_DISP": {
+          "trades": 10,
+          "wins": 1,
+          "total_r": -8.05,
+          "wr": 10.0
+        }
+      },
+      "session_stats": {
+        "asia": {
+          "trades": 6824,
+          "wins": 1656,
+          "total_r": -2832.15,
+          "wr": 24.3
+        }
+      },
+      "yearly_stats": {
+        "2019": {
+          "trades": 514,
+          "wins": 106,
+          "total_r": -297.53,
+          "wr": 20.6
+        },
+        "2020": {
+          "trades": 1077,
+          "wins": 272,
+          "total_r": -419.41,
+          "wr": 25.3
+        },
+        "2021": {
+          "trades": 903,
+          "wins": 192,
+          "total_r": -460.14,
+          "wr": 21.3
+        },
+        "2022": {
+          "trades": 1058,
+          "wins": 293,
+          "total_r": -344.14,
+          "wr": 27.7
+        },
+        "2023": {
+          "trades": 1012,
+          "wins": 244,
+          "total_r": -399.95,
+          "wr": 24.1
+        },
+        "2024": {
+          "trades": 913,
+          "wins": 203,
+          "total_r": -387.58,
+          "wr": 22.2
+        },
+        "2025": {
+          "trades": 991,
+          "wins": 248,
+          "total_r": -437.26,
+          "wr": 25.0
+        },
+        "2026": {
+          "trades": 356,
+          "wins": 98,
+          "total_r": -86.14,
+          "wr": 27.5
+        }
+      },
+      "total_trades": 6824,
+      "source": "github_checkpoint"
+    },
+    "USTECm": {
+      "win_rate": 45.2,
+      "profit_factor": 0.81,
+      "best_pattern": "BOS_BULL_DISP",
+      "best_session": "ny_overlap",
+      "best_hours": [
+        20,
+        16,
+        19,
+        14,
+        13
+      ],
+      "pattern_stats": {
+        "FVG_BULL": {
+          "trades": 300,
+          "wins": 116,
+          "total_r": -61.78,
+          "wr": 38.7
+        },
+        "FVG_BEAR": {
+          "trades": 143,
+          "wins": 48,
+          "total_r": -52.2,
+          "wr": 33.6
+        },
+        "FVG_BEAR_IND": {
+          "trades": 106,
+          "wins": 43,
+          "total_r": -29.76,
+          "wr": 40.6
+        },
+        "FVG_BULL_IND": {
+          "trades": 111,
+          "wins": 53,
+          "total_r": -4.6,
+          "wr": 47.7
+        },
+        "BOS_BULL": {
+          "trades": 89,
+          "wins": 54,
+          "total_r": 20.64,
+          "wr": 60.7
+        },
+        "BOS_BEAR": {
+          "trades": 73,
+          "wins": 34,
+          "total_r": -5.03,
+          "wr": 46.6
+        },
+        "OB_BEAR_IND": {
+          "trades": 70,
+          "wins": 28,
+          "total_r": -14.2,
+          "wr": 40.0
+        },
+        "OB_BULL_IND": {
+          "trades": 76,
+          "wins": 37,
+          "total_r": 0.27,
+          "wr": 48.7
+        },
+        "OB_BEAR_DISP_IND": {
+          "trades": 11,
+          "wins": 6,
+          "total_r": 3.33,
+          "wr": 54.5
+        },
+        "BOS_BEAR_DISP": {
+          "trades": 9,
+          "wins": 4,
+          "total_r": 1.04,
+          "wr": 44.4
+        },
+        "OB_BEAR": {
+          "trades": 32,
+          "wins": 15,
+          "total_r": -6.19,
+          "wr": 46.9
+        },
+        "BOS_BEAR_DISP_IND": {
+          "trades": 22,
+          "wins": 10,
+          "total_r": -3.91,
+          "wr": 45.5
+        },
+        "BOS_BEAR_IND": {
+          "trades": 11,
+          "wins": 5,
+          "total_r": -3.44,
+          "wr": 45.5
+        },
+        "BOS_BULL_DISP_IND": {
+          "trades": 9,
+          "wins": 7,
+          "total_r": 6.26,
+          "wr": 77.8
+        },
+        "OB_BULL": {
+          "trades": 51,
+          "wins": 36,
+          "total_r": 22.02,
+          "wr": 70.6
+        },
+        "FVG_BEAR_DISP_IND": {
+          "trades": 10,
+          "wins": 6,
+          "total_r": 1.5,
+          "wr": 60.0
+        },
+        "FVG_BULL_DISP_IND": {
+          "trades": 9,
+          "wins": 4,
+          "total_r": -3.33,
+          "wr": 44.4
+        },
+        "BOS_BULL_IND": {
+          "trades": 24,
+          "wins": 12,
+          "total_r": 2.46,
+          "wr": 50.0
+        },
+        "BOS_BULL_DISP": {
+          "trades": 2,
+          "wins": 2,
+          "total_r": 1.95,
+          "wr": 100.0
+        },
+        "FVG_BULL_DISP": {
+          "trades": 11,
+          "wins": 5,
+          "total_r": -0.73,
+          "wr": 45.5
+        },
+        "OB_BULL_DISP_IND": {
+          "trades": 5,
+          "wins": 3,
+          "total_r": 1.67,
+          "wr": 60.0
+        },
+        "FVG_BEAR_DISP": {
+          "trades": 8,
+          "wins": 3,
+          "total_r": -2.49,
+          "wr": 37.5
+        },
+        "OB_BEAR_DISP": {
+          "trades": 3,
+          "wins": 3,
+          "total_r": 3.36,
+          "wr": 100.0
+        },
+        "OB_BULL_DISP": {
+          "trades": 4,
+          "wins": 4,
+          "total_r": 2.48,
+          "wr": 100.0
+        }
+      },
+      "session_stats": {
+        "london": {
+          "trades": 210,
+          "wins": 27,
+          "total_r": -157.64,
+          "wr": 12.9
+        },
+        "ny_overlap": {
+          "trades": 671,
+          "wins": 351,
+          "total_r": 18.0,
+          "wr": 52.3
+        },
+        "ny": {
+          "trades": 308,
+          "wins": 160,
+          "total_r": 18.93,
+          "wr": 51.9
+        }
+      },
+      "yearly_stats": {
+        "2022": {
+          "trades": 63,
+          "wins": 11,
+          "total_r": -41.63,
+          "wr": 17.5
+        },
+        "2023": {
+          "trades": 310,
+          "wins": 93,
+          "total_r": -141.34,
+          "wr": 30.0
+        },
+        "2024": {
+          "trades": 332,
+          "wins": 170,
+          "total_r": 13.59,
+          "wr": 51.2
+        },
+        "2025": {
+          "trades": 323,
+          "wins": 173,
+          "total_r": 38.97,
+          "wr": 53.6
+        },
+        "2026": {
+          "trades": 161,
+          "wins": 91,
+          "total_r": 9.71,
+          "wr": 56.5
+        }
+      },
+      "total_trades": 1189,
+      "source": "Yahoo Finance ^NDX → H1"
+    }
+  }
+}
